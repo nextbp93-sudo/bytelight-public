@@ -22,7 +22,7 @@ const dbPath = join(tmpRoot, 'test.db');
 process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const { proposeEdit, getProposal, listPendingProposals } = await import('../memory-proposals.js');
 const { unfiledNoticings } = await import('./whisper.js');
 
@@ -30,6 +30,7 @@ before(() => {
   initDb(dbPath);
 });
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

@@ -30,6 +30,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tempRoot, { recursive: true, force: true });
 });
 

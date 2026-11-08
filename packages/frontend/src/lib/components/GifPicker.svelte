@@ -3,15 +3,15 @@
   const GIPHY_SEARCH = 'https://api.giphy.com/v1/gifs/search';
   const GIPHY_TRENDING = 'https://api.giphy.com/v1/gifs/trending';
 
-  let { onselect } = $props<{
+  let { onselect }: {
     onselect?: (url: string) => void;
-  }>();
+  } = $props();
 
   let open = $state(false);
   let query = $state('');
   let results = $state<Array<{ id: string; url: string; preview: string; width: number; height: number }>>([]);
   let loading = $state(false);
-  let searchInput: HTMLInputElement;
+  let searchInput = $state<HTMLInputElement>();
   let debounceTimer: ReturnType<typeof setTimeout>;
   let pickerEl: HTMLDivElement;
 
@@ -112,7 +112,7 @@
   </button>
 
   {#if open}
-    <div class="gif-panel" onkeydown={handleKeydown}>
+    <div class="gif-panel" role="dialog" aria-label="GIF picker" tabindex="-1" onkeydown={handleKeydown}>
       <div class="gif-search">
         <input
           bind:this={searchInput}

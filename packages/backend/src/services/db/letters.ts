@@ -17,7 +17,9 @@ export type LetterSeal = 'open' | 'date' | 'on_open';
 const KINDS: LetterKind[] = ['vow', 'confession', 'letter', 'keepsake'];
 const SEALS: LetterSeal[] = ['open', 'date', 'on_open'];
 
-const LETTERS_DIR = join(PROJECT_ROOT, 'data', 'letters');
+// The override keeps tests and alternate local houses from touching the
+// project's real permanent-letter mirror. Production defaults are unchanged.
+const LETTERS_DIR = process.env.BYTELIGHT_LETTERS_DIR || join(PROJECT_ROOT, 'data', 'letters');
 
 export interface Letter {
   id: string;

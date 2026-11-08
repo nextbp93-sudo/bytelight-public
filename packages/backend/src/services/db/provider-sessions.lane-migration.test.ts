@@ -39,7 +39,11 @@ test('027 keeps every card, all in the shared lane, and adds lane to the key', (
 });
 
 const root = mkdtempSync(join(tmpdir(), 'lane-migration-'));
-after(() => rmSync(root, { recursive: true, force: true }));
+after(async () => {
+  const { getDb } = await import('./init.js');
+  getDb().close();
+  rmSync(root, { recursive: true, force: true });
+});
 
 test('booting the house twice is safe: the rebuild runs once', async () => {
   process.env.RESONANT_HOME = root;

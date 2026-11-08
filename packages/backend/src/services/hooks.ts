@@ -372,7 +372,8 @@ function safePreToolUse(fn: HookCallback): HookCallback {
 
 export function getNativeClaudeMemoryDir(agentCwd: string, configDir = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude')): string {
   const projectKey = agentCwd.replace(/[^a-zA-Z0-9]/g, '-');
-  return join(configDir, 'projects', projectKey, 'memory');
+  const slash = configDir.includes('\\') ? '\\' : '/';
+  return [configDir.replace(/[\\/]+$/, ''), 'projects', projectKey, 'memory'].join(slash);
 }
 
 function getSafeWritePrefixes(): string[] {

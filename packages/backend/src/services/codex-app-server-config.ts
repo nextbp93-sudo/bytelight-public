@@ -68,7 +68,6 @@ export function codexAppServerArgs(
   }
   const mcpConfig = `mcp_servers={${entries.join(',')}}`;
   return [
-    '--dangerously-bypass-approvals-and-sandbox',
     'app-server',
     '--listen', `unix://${BYTELIGHT_CODEX_SOCKET}`,
     '-c', mcpConfig,

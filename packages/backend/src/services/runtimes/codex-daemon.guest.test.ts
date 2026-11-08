@@ -108,12 +108,14 @@ afterEach(() => {
   releaseCodexHold();
 });
 
-test("the owner's turn keeps full hands and carries no guest banner", async () => {
+test("the owner's turn keeps house-scoped hands and carries no guest banner", async () => {
   script(conn);
   const events = await collect(new InteractiveCodexRuntime(FAST).runTurn(buildInput()));
   assert.deepEqual(events[events.length - 1], { type: 'done', finishReason: 'stop' });
   const start = conn.calls('turn/start')[0].params;
-  assert.deepEqual(start.sandboxPolicy, { type: 'dangerFullAccess' });
+  assert.equal(start.sandboxPolicy.type, 'workspaceWrite');
+  assert.equal(start.sandboxPolicy.networkAccess, true);
+  assert.equal(start.sandboxPolicy.writableRoots.length, 1);
   assert.equal(start.approvalPolicy, 'never');
   assert.doesNotMatch(start.input[0].text, /Guest turn/);
 });
@@ -126,7 +128,7 @@ test("a guest's turn runs read-only, asks first, and is told so", async () => {
   assert.deepEqual(events[events.length - 1], { type: 'done', finishReason: 'stop' }, 'speech alone still answers');
   const start = conn.calls('turn/start')[0].params;
   assert.deepEqual(start.sandboxPolicy, { type: 'readOnly' });
-  assert.equal(start.approvalPolicy, 'untrusted');
+  assert.equal(start.approvalPolicy, 'on-request');
   assert.match(start.input[0].text, /\[Guest turn, standard trust:/);
   assert.equal(codexActiveTurnAudience(), null, 'the audience is cleared when the turn ends');
 });

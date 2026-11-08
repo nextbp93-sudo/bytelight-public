@@ -17,14 +17,17 @@ const SECRET = 'not-a-real-key-do-not-write-me';
 process.env.MIND_API_URL = 'https://brain.example.dev/';
 process.env.MIND_API_KEY = SECRET;
 
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const {
   buildNeuralisMcpConfig, neuralisMcpArgs, provisionSessionDir, NEURALIS_MCP_FILENAME,
 } = await import('./provision.js');
 const { stripChildEnv } = await import('./supervisor.js');
 
 before(() => { initDb(join(tmpRoot, 'test.db')); });
-after(() => { rmSync(tmpRoot, { recursive: true, force: true }); });
+after(() => {
+  getDb().close();
+  rmSync(tmpRoot, { recursive: true, force: true });
+});
 
 test('a lane carries the pinned core and the full surface', () => {
   const servers = JSON.parse(buildNeuralisMcpConfig()!).mcpServers;

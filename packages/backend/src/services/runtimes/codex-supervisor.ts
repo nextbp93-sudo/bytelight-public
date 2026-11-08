@@ -59,7 +59,10 @@ export function materializeCodexSkillsDoor(agentCwd: string): void {
     }
 
     mkdirSync(dirname(door), { recursive: true });
-    symlinkSync(source, door, 'dir');
+    // Directory junctions do not require Windows Developer Mode or elevated
+    // symlink privileges. They remain a link (not a copy), so skills have one
+    // source of truth on every supported host.
+    symlinkSync(source, door, process.platform === 'win32' ? 'junction' : 'dir');
   } catch (err) {
     console.warn(
       `[CodexSupervisor] Could not materialize skills door at ${door}: ${err instanceof Error ? err.message : err}`,
@@ -249,11 +252,9 @@ class CodexDaemonSupervisor {
       // Start byte-light's own app-server in the background on a private
       // socket. A command-local MCP table prevents unrelated Codex sessions
       // from inheriting the house belt through the user's global config.
-      // --dangerously-bypass-approvals-and-sandbox is operator-approved for
-      // byte-light's single-user sovereign box (see H2 preflight §6): the VM
-      // may lack CAP_NET_ADMIN for bwrap network namespaces, and every turn
-      // runs on the operator's own subscription — there is no hostile tenant
-      // to sandbox against. The flag is a the operator-visible decision, not smuggled.
+      // Thread and turn policy is owned by codex-daemon.ts. Do not disable the
+      // app-server's sandbox or approval machinery at process launch: doing so
+      // erases the house boundary for every current and future turn.
       const { args, fingerprint } = this.launchPlan();
       const startupErrors: string[] = [];
       let settled = false;

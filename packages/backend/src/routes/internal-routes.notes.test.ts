@@ -41,6 +41,7 @@ before(async () => {
 });
 
 after(() => {
+  getDb().close();
   server?.close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });

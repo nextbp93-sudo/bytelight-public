@@ -29,7 +29,10 @@ const {
 const dbPath = join(root, 'test.db');
 initDb(dbPath);
 
-after(() => { rmSync(root, { recursive: true, force: true }); });
+after(() => {
+  getDb().close();
+  rmSync(root, { recursive: true, force: true });
+});
 
 // Small helper to make an entry (proposed by default).
 let seq = 0;

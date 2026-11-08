@@ -30,7 +30,7 @@ process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
 // Dynamic imports AFTER env stub.
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const { setBlock, formatBlocksForPrompt, SHARED_SCOPE, COMPANION_SCOPES } =
   await import('../memory-blocks.js');
 const { provisionSessionDir } = await import('./provision.js');
@@ -47,6 +47,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

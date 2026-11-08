@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { dirname, join, resolve } from 'path';
 
 import {
   codexDaemonStartupAction,
@@ -84,18 +84,22 @@ describe('materializeCodexSkillsDoor', () => {
 
     const door = join(cwd, '.agents', 'skills');
     assert.equal(lstatSync(door).isSymbolicLink(), true);
-    assert.equal(readlinkSync(door), join(cwd, '.claude', 'skills'));
+    assert.equal(resolve(readlinkSync(door)), resolve(cwd, '.claude', 'skills'));
   });
 
   test('leaves an already-correct symlink unchanged', () => {
     const cwd = makeAgentCwd();
     const door = join(cwd, '.agents', 'skills');
     mkdirSync(join(cwd, '.agents'), { recursive: true });
-    symlinkSync('../.claude/skills', door, 'dir');
+    symlinkSync(
+      process.platform === 'win32' ? join(cwd, '.claude', 'skills') : '../.claude/skills',
+      door,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
 
     materializeCodexSkillsDoor(cwd);
 
-    assert.equal(readlinkSync(door), '../.claude/skills');
+    assert.equal(resolve(dirname(door), readlinkSync(door)), resolve(cwd, '.claude', 'skills'));
   });
 
   test('warns and preserves an existing real directory', () => {

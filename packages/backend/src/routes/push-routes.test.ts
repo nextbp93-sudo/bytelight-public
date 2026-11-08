@@ -19,7 +19,7 @@ const dbPath = join(tmpRoot, 'test.db');
 process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
-const { initDb, listPushSubscriptions } = await import('../services/db.js');
+const { initDb, getDb, listPushSubscriptions } = await import('../services/db.js');
 const { createPushRoutes } = await import('./push-routes.js');
 
 let server: Server;
@@ -39,6 +39,7 @@ before(async () => {
 });
 
 after(() => {
+  getDb().close();
   server?.close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });

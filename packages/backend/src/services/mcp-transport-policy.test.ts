@@ -22,7 +22,8 @@ describe('MCP transport ownership policies', () => {
   it('launches the owned app-server with a private socket and MCP table', () => {
     const args = codexAppServerArgs().join(' ');
     assert.match(args, /app-server --listen unix:\/\//);
-    assert.match(args, /\.codex\/app-server-control\/bytelight-app-server\.sock/);
+    assert.match(args, /\.codex[\\\\/]app-server-control[\\\\/]bytelight-app-server\.sock/);
+    assert.doesNotMatch(args, /dangerously-bypass/);
     assert.match(args, /mcp_servers=\{bytelight=/);
     assert.match(args, /bearer_token_env_var="BYTELIGHT_MCP_BELT_TOKEN"/);
   });

@@ -10,7 +10,7 @@ const dbPath = join(tmpRoot, 'test.db');
 process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
-const { initDb, createMessage, getMessageByClientId } = await import('./db.js');
+const { initDb, getDb, createMessage, getMessageByClientId } = await import('./db.js');
 
 before(() => {
   initDb(dbPath);
@@ -23,7 +23,10 @@ before(() => {
   db.close();
 });
 
-after(() => rmSync(tmpRoot, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(tmpRoot, { recursive: true, force: true });
+});
 
 describe('durable message delivery ids', () => {
   it('finds the original row after a retry using the same client id', () => {

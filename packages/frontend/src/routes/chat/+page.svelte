@@ -845,6 +845,7 @@
               <div class="date-divider"><span class="date-divider-label">{dateDividerLabel(message.created_at)}</span></div>
             {/if}
             <div
+              role="article"
               id="msg-{message.id}"
               class="message-wrapper"
               oncontextmenu={(e) => { if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) return; e.preventDefault(); handleReply(message); }}

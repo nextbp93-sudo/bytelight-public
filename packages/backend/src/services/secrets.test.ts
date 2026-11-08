@@ -9,7 +9,7 @@ import { join } from 'node:path';
 const tmpRoot = mkdtempSync(join(tmpdir(), 'secrets-test-'));
 const dbPath = join(tmpRoot, 'test.db');
 
-const { initDb } = await import('./db.js');
+const { initDb, getDb } = await import('./db.js');
 const { getSecret, setSecret, deleteSecret, listSecrets } = await import('./secrets.js');
 
 // tavily_api_key is a pure env-backed slot (no yaml fallback), which
@@ -24,6 +24,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   delete process.env[ENV];
   rmSync(tmpRoot, { recursive: true, force: true });
 });

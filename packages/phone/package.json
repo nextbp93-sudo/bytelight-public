@@ -7,10 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
+    "clean": "node ../../scripts/clean.mjs dist",
     "lint": "tsc --noEmit",
     "check": "tsc --noEmit",
-    "test": "find src -name '*.test.ts' -print0 | xargs -0 tsx --test"
+    "test": "node ../../scripts/run-tests.mjs src"
   },
   "dependencies": {
     "@bytelight/shared": "*",

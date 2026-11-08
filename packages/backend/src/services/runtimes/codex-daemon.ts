@@ -74,12 +74,14 @@ const EXT_BY_MEDIA: Record<string, string> = {
   'image/gif': 'gif',
 };
 
-// Sandbox/approval policy for every thread and turn. The daemon-level CLI
-// bypass flag does NOT govern app-server threads — sandbox is a per-thread
-// setting in this protocol. Without dangerFullAccess, exec_command gets
-// wrapped in bwrap, which fails on VMs without CAP_NET_ADMIN (loopback
-// RTM_NEWADDR denied).
-const SANDBOX_POLICY = { type: 'dangerFullAccess' };
+// Owner turns are autonomous inside the configured house workspace. The
+// application-owned MCP belt remains available for durable house state, but a
+// model turn does not inherit unrestricted access to the rest of the machine.
+const ownerSandboxPolicy = (agentCwd: string) => ({
+  type: 'workspaceWrite',
+  writableRoots: [agentCwd],
+  networkAccess: true,
+});
 const APPROVAL_POLICY = 'never';
 
 // Guest turns (services/turn-audience.ts). The daemon owns its own tools
@@ -94,7 +96,7 @@ const APPROVAL_POLICY = 'never';
 // The house's own belt (/mcp/belt) also refuses a guest's turn on its own
 // (codexActiveTurnAudience below, read by routes/mcp-belt.ts).
 const GUEST_SANDBOX_POLICY = { type: 'readOnly' };
-const GUEST_APPROVAL_POLICY = 'untrusted';
+const GUEST_APPROVAL_POLICY = 'on-request';
 const CODEX_SPEECH_ITEM_TYPES = new Set(['userMessage', 'agentMessage', 'reasoning', 'plan', 'contextCompaction']);
 
 /** True when a daemon item on a guest's turn must end that turn: anything
@@ -345,7 +347,6 @@ class CodexDaemonConnection {
   }
 
   private handleServerRequest(msg: { id: number | string; method: string; params: any }): void {
-    // Auto-approve all approval requests (we're using bypass mode)
     let response: any = { jsonrpc: '2.0', id: msg.id };
 
     // A guest's turn is never approved anything (see GUEST_SANDBOX_POLICY).
@@ -360,36 +361,28 @@ class CodexDaemonConnection {
 
     switch (msg.method) {
       case 'item/commandExecution/requestApproval':
-        console.log(`[CodexDaemon] Auto-approving command: ${msg.params?.command?.slice(0, 100)}...`);
-        response.result = { approved: true };
-        break;
       case 'item/fileChange/requestApproval':
-        console.log(`[CodexDaemon] Auto-approving file change: ${msg.params?.changes?.[0]?.path || 'unknown'}`);
-        response.result = { approved: true };
+      case 'item/applyPatch/requestApproval':
+      case 'item/execCommand/requestApproval':
+      case 'item/permissions/requestApproval':
+        // Owner turns use approvalPolicy=never inside a workspaceWrite sandbox,
+        // so an approval request means the requested action crossed that
+        // boundary. Until the phone UI can render and resolve approvals, fail
+        // closed instead of silently widening access.
+        console.log(`[CodexDaemon] Declining out-of-policy request: ${msg.method}`);
+        response.result = { approved: false, decision: 'decline' };
         break;
       case 'item/tool/requestUserInput':
         // Can't auto-handle user input requests — deny them
         console.log(`[CodexDaemon] Denying user input request (can't auto-handle)`);
         response.result = { cancelled: true };
         break;
-      case 'item/applyPatch/requestApproval':
-        console.log(`[CodexDaemon] Auto-approving patch`);
-        response.result = { approved: true };
-        break;
-      case 'item/execCommand/requestApproval':
-        console.log(`[CodexDaemon] Auto-approving exec command`);
-        response.result = { approved: true };
-        break;
-      case 'item/permissions/requestApproval':
-        console.log(`[CodexDaemon] Auto-approving permissions`);
-        response.result = { approved: true };
-        break;
       case 'mcpServer/elicitation/request': {
         // MCP tool-call approvals arrive as elicitations (see _meta.codex_approval_kind).
         // Auto-accept those; decline genuine form elicitations we can't answer.
         const kind = msg.params?._meta?.codex_approval_kind;
-        if (kind === 'mcp_tool_call') {
-          console.log(`[CodexDaemon] Auto-approving MCP tool call: ${msg.params?.serverName || 'unknown'} — ${msg.params?._meta?.tool_title || msg.params?.message || ''}`.slice(0, 200));
+        if (kind === 'mcp_tool_call' && msg.params?.serverName === 'bytelight') {
+          console.log(`[CodexDaemon] Approving house-belt tool call: ${msg.params?._meta?.tool_title || msg.params?.message || ''}`.slice(0, 200));
           response.result = { action: 'accept', content: {} };
         } else {
           console.log(`[CodexDaemon] Declining non-approval elicitation (kind=${kind || 'none'})`);
@@ -398,8 +391,8 @@ class CodexDaemonConnection {
         break;
       }
       default:
-        console.log(`[CodexDaemon] Unknown server request: ${msg.method}, auto-approving`);
-        response.result = { approved: true };
+        console.log(`[CodexDaemon] Unknown server request: ${msg.method}, declining`);
+        response.result = { approved: false, decision: 'decline' };
     }
 
     // Send response
@@ -1280,7 +1273,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         cwd: agentCwd,
         baseInstructions: baseInstructionsToSend,
         developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: SANDBOX_POLICY,
+        sandboxPolicy: ownerSandboxPolicy(agentCwd),
         approvalPolicy: APPROVAL_POLICY,
       };
 
@@ -1357,7 +1350,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
     // A guest's turn (turn-audience.ts) runs read-only, asks before anything
     // untrusted, and is told so under the message, in the CLI lane's words.
     const guestAudience = input.audience?.kind === 'guest' ? input.audience : null;
-    const turnSandboxPolicy = guestAudience ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY;
+    const turnSandboxPolicy = guestAudience ? GUEST_SANDBOX_POLICY : ownerSandboxPolicy(agentCwd);
     const turnApprovalPolicy = guestAudience ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY;
     const guestBanner = guestAudience
       ? `\n\n[Guest turn, ${guestAudience.trust} trust: this came from somebody who is not the owner. ` +
@@ -1451,7 +1444,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         cwd: agentCwd,
         baseInstructions: baseInstructionsToSend,
         developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: SANDBOX_POLICY,
+        sandboxPolicy: ownerSandboxPolicy(agentCwd),
         approvalPolicy: APPROVAL_POLICY,
       };
       if (modelId) {

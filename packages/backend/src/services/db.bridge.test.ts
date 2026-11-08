@@ -21,7 +21,7 @@ writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-s
 
 // Dynamic import AFTER env stub.
 const dbMod = await import('./db.js');
-const { initDb, setProviderSession, getProviderSession, clearProviderSessionsForThread, hasAnyProviderSessionForThread, getMostRecentProviderSession, getMessages } = dbMod;
+const { initDb, getDb, setProviderSession, getProviderSession, clearProviderSessionsForThread, hasAnyProviderSessionForThread, getMostRecentProviderSession, getMessages } = dbMod;
 const { decideBridge, buildBridgeBlock } = await import('./agent-bridge.js');
 
 before(() => {
@@ -39,6 +39,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

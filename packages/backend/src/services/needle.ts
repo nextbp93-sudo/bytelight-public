@@ -115,7 +115,10 @@ export function readLandedRequest(body: unknown): { ok: true; value: NeedleLandi
 function within<T>(work: Promise<T>, ms: number): Promise<T | null> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), ms);
-    timer.unref?.();
+    // This timer is the only thing guaranteed to settle the promise when the
+    // app-id lookup never answers. Unref'ing it lets an isolated worker exit
+    // with the drop still pending (and made the behavior depend on unrelated
+    // open handles), so keep it referenced until either branch settles.
     work.then(
       (value) => { clearTimeout(timer); resolve(value); },
       () => { clearTimeout(timer); resolve(null); },

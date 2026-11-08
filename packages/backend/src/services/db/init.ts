@@ -23,6 +23,14 @@ function runMigration(database: Database.Database, relPath: string, { required =
 }
 
 export function initDb(dbPath: string): Database.Database {
+  // Reinitialization is used by migrations, tests, and configuration reload
+  // paths. SQLite files cannot be replaced on Windows while the previous
+  // better-sqlite3 handle is still open, so retire it before swapping the
+  // singleton. On POSIX this also prevents silent descriptor leaks.
+  if (db) {
+    try { db.close(); } catch { /* already closed */ }
+    db = null;
+  }
   db = new Database(dbPath);
 
   // Enable WAL mode for better concurrency

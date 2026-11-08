@@ -419,8 +419,7 @@
     margin: 0;
   }
 
-  .panel-desc code,
-  .archivist-desc code {
+  .panel-desc code {
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     padding: 0 0.25rem;

@@ -16,21 +16,27 @@
     seated = [],
     onsaved,
     onclose,
-  } = $props<{
+  }: {
     threadId: string;
     /** Currently-seated companions (rendered pre-selected). */
     seated?: Companion[];
     onsaved?: (roster: Companion[]) => void;
     onclose?: () => void;
-  }>();
+  } = $props();
 
   // Local draft of seated ids — toggled by tapping chips. Seeded once from the
   // seated prop: the editor is remounted each time it opens (the parent guards
   // it behind {#if rosterEditorOpen}), so capturing the initial value here is
   // intentional, not a missed reactive dependency.
-  // svelte-ignore state_referenced_locally
-  let draftIds = $state<string[]>(seated.map((c: Companion) => c.id));
+  let draftIds = $state<string[]>([]);
+  let initialized = $state(false);
   let saving = $state(false);
+
+  $effect.pre(() => {
+    if (initialized) return;
+    draftIds = seated.map((c: Companion) => c.id);
+    initialized = true;
+  });
 
   // On mobile the panel is fixed-positioned (clamped to the viewport's right
   // edge so it can't overflow like it did before). We still want it to drop

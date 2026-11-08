@@ -15,7 +15,7 @@ import { join } from 'node:path';
 const tmpRoot = mkdtempSync(join(tmpdir(), 'discord-rules-test-'));
 const dbPath = join(tmpRoot, 'test.db');
 
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const {
   saveRules,
   isChannelIgnored,
@@ -54,6 +54,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

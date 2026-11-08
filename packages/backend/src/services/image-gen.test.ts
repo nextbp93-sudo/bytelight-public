@@ -25,12 +25,13 @@ writeFileSync(JOBS_FILE, JSON.stringify([
 // Real disk-backed DB, same pattern as secrets.test.ts — getImageGenSettings
 // reads config through getDb().
 const tmpRoot = mkdtempSync(join(tmpdir(), 'image-gen-test-'));
-const { initDb, setConfig } = await import('./db.js');
+const { initDb, getDb, setConfig } = await import('./db.js');
 initDb(join(tmpRoot, 'test.db'));
 
 const { getJobStatus, listImageJobs, pruneFinishedJobs, startGenerateJob } = await import('./image-gen.js');
 
 after(() => {
+  getDb().close();
   if (realJobsFile === null) rmSync(JOBS_FILE, { force: true });
   else writeFileSync(JOBS_FILE, realJobsFile);
   rmSync(tmpRoot, { recursive: true, force: true });

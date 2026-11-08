@@ -64,7 +64,10 @@ export function archivistSdkOptions(model: string, systemPrompt: string, abortCo
     allowedTools: [],
     mcpServers: {},
     thinking: { type: 'disabled' },
-    env: { ...process.env, DISABLE_AUTO_COMPACT: '1' },
+    // Windows preserves the environment's original `Path` casing when it is
+    // spread. The SDK and our contract both read `PATH`, so publish that key
+    // explicitly as well as retaining the rest of the environment.
+    env: { ...process.env, PATH: process.env.PATH, DISABLE_AUTO_COMPACT: '1' },
     abortController,
   };
 }

@@ -13,7 +13,7 @@ process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
 const dbMod = await import('./db.js');
-const { initDb, getMessageContext } = dbMod;
+const { initDb, getDb, getMessageContext } = dbMod;
 
 // Ten messages, sequence 1..10. m5 is the mid-thread target. m4 is soft-deleted
 // so we can prove the window skips deleted rows.
@@ -43,6 +43,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

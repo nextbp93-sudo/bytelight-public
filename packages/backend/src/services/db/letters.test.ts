@@ -1,23 +1,16 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdtempSync } from 'node:fs';
 
 const root = mkdtempSync(join(tmpdir(), 'letters-test-'));
 process.env.RESONANT_HOME = root;
-const projectData = join(process.cwd(), '..', '..', 'data');
 const mirrorDir = join(root, 'letters');
-let madeProjectData = false;
-
-if (!existsSync(projectData)) {
-  mkdirSync(projectData, { recursive: true });
-  madeProjectData = true;
-}
 mkdirSync(mirrorDir, { recursive: true });
-symlinkSync(mirrorDir, join(projectData, 'letters'), 'dir');
+process.env.BYTELIGHT_LETTERS_DIR = mirrorDir;
 
 const { initDb, getDb } = await import('../db.js');
 const letters = await import('./letters.js');
@@ -25,8 +18,7 @@ const letters = await import('./letters.js');
 before(() => initDb(join(root, 'test.db')));
 after(() => {
   getDb().close();
-  rmSync(join(projectData, 'letters'), { force: true });
-  if (madeProjectData) rmSync(projectData, { recursive: true, force: true });
+  delete process.env.BYTELIGHT_LETTERS_DIR;
   rmSync(root, { recursive: true, force: true });
 });
 

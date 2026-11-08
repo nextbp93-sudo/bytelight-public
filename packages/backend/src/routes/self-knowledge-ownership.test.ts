@@ -24,7 +24,7 @@ const dbPath = join(tmpRoot, 'test.db');
 process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
-const { initDb } = await import('../services/db.js');
+const { initDb, getDb } = await import('../services/db.js');
 const { getSelfKnowledge, listSelfKnowledge } = await import('../services/db/self-knowledge.js');
 const { createInternalRoutes } = await import('./internal-routes.js');
 
@@ -45,6 +45,7 @@ before(async () => {
 });
 
 after(() => {
+  getDb().close();
   server?.close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });

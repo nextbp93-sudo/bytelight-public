@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import yaml from 'js-yaml';
 
-import { initDb, getConfig } from './db.js';
+import { initDb, getDb, getConfig } from './db.js';
 import { persistAgentSetting } from './agent-settings.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'bl-agent-settings-'));
@@ -30,7 +30,10 @@ before(() => {
   }), 'utf-8');
 });
 
-after(() => rmSync(dir, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 test('an agent.model write reaches the DB row AND the yaml', () => {
   persistAgentSetting('agent.model', 'claude-opus-5', scratchYaml);

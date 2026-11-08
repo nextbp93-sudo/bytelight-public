@@ -45,7 +45,7 @@
 </script>
 
 {#if open}
-  <div class="confirm-overlay" role="dialog" aria-modal="true" onkeydown={onKey}>
+  <div class="confirm-overlay" role="dialog" aria-modal="true" tabindex="-1" onkeydown={onKey}>
     <button class="confirm-backdrop" onclick={cancel} aria-label="Close"></button>
     <div class="confirm-panel">
       <h3 class="confirm-title">{title}</h3>

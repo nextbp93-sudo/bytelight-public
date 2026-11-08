@@ -1,12 +1,12 @@
 <script lang="ts">
-  let { onselect } = $props<{
+  let { onselect }: {
     onselect?: (emoji: string) => void;
-  }>();
+  } = $props();
 
   let open = $state(false);
   let activeCategory = $state('smileys');
   let searchQuery = $state('');
-  let searchInput: HTMLInputElement;
+  let searchInput = $state<HTMLInputElement>();
   let pickerEl: HTMLDivElement;
 
   const categories: Record<string, { label: string; icon: string; emojis: string[] }> = {
@@ -151,7 +151,7 @@
   </button>
 
   {#if open}
-    <div class="emoji-panel" onkeydown={handleKeydown}>
+    <div class="emoji-panel" role="dialog" aria-label="Emoji picker" tabindex="-1" onkeydown={handleKeydown}>
       <div class="emoji-search">
         <input
           bind:this={searchInput}

@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadConfig } from '../../config.js';
-import { initDb } from '../db/init.js';
+import { initDb, getDb } from '../db/init.js';
 import { setConfig, deleteConfig } from '../db/config.js';
 import { getOwnerMentionSettings, getDiscordConfig } from './config.js';
 
@@ -22,7 +22,10 @@ writeFileSync(yamlPath, 'identity:\n  user_name: "Owner"\n');
 delete process.env.USER_NAME;
 loadConfig(yamlPath);
 initDb(join(dir, 'test.db'));
-after(() => rmSync(dir, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 test('owner mentions ship switched on here, because the operator asked for them', () => {
   assert.equal(getOwnerMentionSettings().enabled, true);

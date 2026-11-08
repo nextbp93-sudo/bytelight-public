@@ -15,7 +15,7 @@ import type { MessageBatch } from './types.js';
 const tmpRoot = mkdtempSync(join(tmpdir(), 'discord-preflight-test-'));
 const dbPath = join(tmpRoot, 'test.db');
 
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const { saveRules } = await import('./rules.js');
 const { preflight } = await import('./preflight.js');
 const { PairingService } = await import('./pairing.js');
@@ -60,6 +60,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

@@ -13,7 +13,7 @@
     oncreate,
     ondelete,
     loadThreads,
-  } = $props<{
+  }: {
     threads: ThreadSummary[];
     activeThreadId: string | null;
     routingThreadId?: string | null;
@@ -21,7 +21,7 @@
     oncreate?: () => void;
     ondelete?: (threadId: string) => void;
     loadThreads?: () => Promise<void> | void;
-  }>();
+  } = $props();
 
   // Home marker (reference implementation's routing-dot, renamed): the routing thread is
   // where Discord, Telegram, and autonomous wakes land. User-facing copy says
@@ -469,33 +469,34 @@
         {/if}
       </div>
 
-      {#if groupedThreads().filtered}
-        {#each groupedThreads().filtered as thread (thread.id)}
+      {@const groups = groupedThreads()}
+      {#if groups.filtered}
+        {#each groups.filtered as thread (thread.id)}
           {@render threadItem(thread)}
         {/each}
-        {#if groupedThreads().filtered.length === 0}
+        {#if groups.filtered.length === 0}
           <p class="empty-filter">No matching threads</p>
         {/if}
       {:else}
-        {#if groupedThreads().pinned.length > 0}
+        {#if groups.pinned.length > 0}
           <div class="thread-group">
             <h3 class="group-title pinned-title">Pinned</h3>
-            {#each groupedThreads().pinned as thread (thread.id)}
+            {#each groups.pinned as thread (thread.id)}
               {@render threadItem(thread)}
             {/each}
           </div>
         {/if}
 
-        {#if groupedThreads().active.length > 0}
+        {#if groups.active.length > 0}
           <div class="thread-group">
             <h3 class="group-title">Active</h3>
-            {#each groupedThreads().active as thread (thread.id)}
+            {#each groups.active as thread (thread.id)}
               {@render threadItem(thread)}
             {/each}
           </div>
         {/if}
 
-        {#each groupedThreads().months as [key, group]}
+        {#each groups.months as [key, group]}
           <div class="thread-group">
             <button class="group-title collapsible" onclick={() => toggleMonth(key)}>
               <span class="group-chevron">{collapsedMonths.has(key) ? '▸' : '▾'}</span>
@@ -510,15 +511,15 @@
           </div>
         {/each}
 
-        {#if groupedThreads().named.length > 0}
+        {#if groups.named.length > 0}
           <div class="thread-group">
             <button class="group-title collapsible" onclick={toggleNamed}>
               <span class="group-chevron">{namedCollapsed ? '▸' : '▾'}</span>
               Named
-              <span class="group-count">{groupedThreads().named.length}</span>
+              <span class="group-count">{groups.named.length}</span>
             </button>
             {#if !namedCollapsed}
-              {#each groupedThreads().named as thread (thread.id)}
+              {#each groups.named as thread (thread.id)}
                 {@render threadItem(thread)}
               {/each}
             {/if}

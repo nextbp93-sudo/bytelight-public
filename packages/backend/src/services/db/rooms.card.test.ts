@@ -9,11 +9,14 @@ const dbPath = join(tmpRoot, 'test.db');
 process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
-const { initDb } = await import('../db.js');
+const { initDb, getDb } = await import('../db.js');
 const { listCompanions, updateCompanionCard } = await import('./rooms.js');
 
 before(() => initDb(dbPath));
-after(() => rmSync(tmpRoot, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(tmpRoot, { recursive: true, force: true });
+});
 
 describe('companion card', () => {
   it('a fresh house has the card columns (migration 026)', () => {

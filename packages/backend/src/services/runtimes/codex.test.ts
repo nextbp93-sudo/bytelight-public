@@ -1705,8 +1705,9 @@ describe('CodexAgentRuntime — Slice 2.5 dispatcher wiring', () => {
     //     `getRouterTools`)
     //   - no imports from `tools/registry` or a parallel registry
     const { readFile } = await import('fs/promises');
+    const { fileURLToPath } = await import('node:url');
     const source = await readFile(
-      new URL('./index.js', import.meta.url).pathname.replace(/\.js$/, '.ts'),
+      fileURLToPath(new URL('./index.ts', import.meta.url)),
       'utf8',
     );
 

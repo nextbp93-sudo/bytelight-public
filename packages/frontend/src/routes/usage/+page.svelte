@@ -446,7 +446,7 @@
         onclick={(e) => togglePopover(id, e)}
       >ⓘ</button>
       {#if openPopover === id}
-        <div class="popover" role="dialog" aria-label={t.term} onclick={(e) => e.stopPropagation()}>
+        <div class="popover" role="dialog" aria-label={t.term} tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
           <div class="popover-term">{t.term}</div>
           <div class="popover-def">{t.definition}</div>
         </div>

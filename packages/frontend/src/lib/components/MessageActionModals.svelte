@@ -13,8 +13,15 @@
 {#if actions.rerollError}<p role="alert">{actions.rerollError}</p>{/if}
 
 {#if actions.showEditModal}
-  <div class="modal-backdrop" role="dialog" aria-modal="true" onclick={() => (actions.showEditModal = false)}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div
+    class="modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    onclick={(e) => { if (e.target === e.currentTarget) actions.showEditModal = false; }}
+    onkeydown={(e) => { if (e.key === 'Escape') actions.showEditModal = false; }}
+  >
+    <div class="modal">
       <h3 class="modal-title">Edit message</h3>
       <textarea
         class="modal-textarea"
@@ -32,8 +39,15 @@
 {/if}
 
 {#if actions.showDeleteConfirm}
-  <div class="modal-backdrop" role="dialog" aria-modal="true" onclick={() => (actions.showDeleteConfirm = false)}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div
+    class="modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    onclick={(e) => { if (e.target === e.currentTarget) actions.showDeleteConfirm = false; }}
+    onkeydown={(e) => { if (e.key === 'Escape') actions.showDeleteConfirm = false; }}
+  >
+    <div class="modal">
       <h3 class="modal-title">Delete this message?</h3>
       <p class="modal-body">It'll be hidden from the conversation. Cannot be undone.</p>
       <div class="modal-actions">

@@ -34,7 +34,7 @@ writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-s
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import type { MessageSegment } from '@bytelight/shared';
-import { initDb, createThread, createMessage, getMessage, getMessages } from './db.js';
+import { initDb, getDb, createThread, createMessage, getMessage, getMessages } from './db.js';
 import { buildSegments, shouldDiscardEmptyTurn, isDeliberateSilence, type ThinkingInsertion } from './agent.js';
 import type { ToolInsertion } from './hooks.js';
 import { loadConfig } from '../config.js';
@@ -54,6 +54,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

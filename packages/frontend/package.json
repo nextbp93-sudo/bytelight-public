@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "find src -name '*.test.ts' -print0 | xargs -0 tsx --test"
+    "test": "node ../../scripts/run-tests.mjs src"
   },
   "dependencies": {
     "@bytelight/shared": "*",

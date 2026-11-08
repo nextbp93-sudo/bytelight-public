@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 
 // Read once at import, so they are set before the supervisor loads.
 process.env.HEARTBEAT_WATCHDOG_TIMEOUT = '1';
@@ -24,10 +24,16 @@ async function until(check: () => boolean, ms: number): Promise<boolean> {
 
 function lane(name: string) {
   const bin = mkdtempSync(join(tmpdir(), 'bytelight-fake-claude-'));
-  writeFileSync(join(bin, 'claude'), '#!/bin/sh\nexec sleep 60\n');
-  chmodSync(join(bin, 'claude'), 0o755);
+  const fakeClaude = join(bin, process.platform === 'win32' ? 'claude.cmd' : 'claude');
+  writeFileSync(
+    fakeClaude,
+    process.platform === 'win32'
+      ? '@echo off\r\nnode -e "setTimeout(function(){},60000)"\r\n'
+      : '#!/bin/sh\nexec sleep 60\n',
+  );
+  if (process.platform !== 'win32') chmodSync(fakeClaude, 0o755);
   const path = process.env.PATH;
-  process.env.PATH = `${bin}:${path}`;
+  process.env.PATH = `${bin}${delimiter}${path}`;
   const key = `compact-watchdog-${name}-${process.pid}`;
   const dir = join(PROJECT_ROOT, 'data', 'heartbeat', key);
   const session = new HeartbeatSession(key);

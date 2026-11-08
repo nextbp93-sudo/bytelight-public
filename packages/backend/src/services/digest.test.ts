@@ -13,7 +13,7 @@ process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
 const dbMod = await import('./db.js');
-const { initDb } = dbMod;
+const { initDb, getDb } = dbMod;
 const digestMod = await import('./digest.js');
 const { selectDigestCandidates, setDigestCursor, clampDigestBacklog } = digestMod;
 
@@ -68,6 +68,7 @@ before(() => {
 });
 
 after(() => {
+  getDb().close();
   rmSync(tmpRoot, { recursive: true, force: true });
 });
 

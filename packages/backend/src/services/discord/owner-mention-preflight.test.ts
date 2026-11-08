@@ -12,7 +12,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadConfig } from '../../config.js';
-import { initDb } from '../db/init.js';
+import { initDb, getDb } from '../db/init.js';
 import { setConfig } from '../db/config.js';
 import { saveRules } from './rules.js';
 import { preflight } from './preflight.js';
@@ -48,7 +48,10 @@ delete process.env.USER_NAME;
 loadConfig(yamlPath);
 initDb(join(dir, 'test.db'));
 // /tmp can be memory on a small box, so the throwaway database goes with the file.
-after(() => rmSync(dir, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(dir, { recursive: true, force: true });
+});
 setConfig('discord.allowedGuilds', GUILD);
 saveRules({
   servers: { [GUILD]: { id: GUILD, name: 'Server A', context: '', ignoredUsers: [IGNORED] } },

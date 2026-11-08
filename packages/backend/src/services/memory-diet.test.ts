@@ -14,7 +14,10 @@ const tempRoot = mkdtempSync(join(tmpdir(), 'memory-diet-test-'));
 const now = new Date('2026-08-10T12:00:00Z');
 
 before(() => initDb(join(tempRoot, 'diet.db')));
-after(() => rmSync(tempRoot, { recursive: true, force: true }));
+after(() => {
+  getDb().close();
+  rmSync(tempRoot, { recursive: true, force: true });
+});
 beforeEach(() => {
   getDb().exec(`
     DELETE FROM memory_blocks_archive;

@@ -17,7 +17,9 @@ export function buildEmojiSightBlock(text: string, lookup: EmojiLookup, emojiDir
     if (seen.has(code)) continue;
     let hit: { name: string; filename: string } | null = null;
     try { hit = lookup(code); } catch { return ''; }
-    if (hit) seen.set(code, join(emojiDir, hit.filename));
+    // Tool prompts use portable forward-slash paths. Node and Windows both
+    // accept them, while backslashes make the same prompt platform-dependent.
+    if (hit) seen.set(code, join(emojiDir, hit.filename).replace(/\\/g, '/'));
   }
   if (seen.size === 0) return '';
   const lines = [...seen].map(([code, path]) => `- :${code}: is the image at ${path}`);
