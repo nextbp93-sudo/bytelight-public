@@ -138,6 +138,20 @@ export function HomeScreen({
         </button>
       </div>
 
+      {/* A home needs a presence even before it has widgets or a wallpaper.
+          This stays deliberately quiet so personal wallpaper can still be the
+          hero later; with no wallpaper, the ambient layer gives it a sky. */}
+      <div className="bytelight-home-signature" aria-hidden="true">
+        <div className="bytelight-home-sigil">
+          <span className="bytelight-home-sigil-orbit bytelight-home-sigil-orbit--one" />
+          <span className="bytelight-home-sigil-orbit bytelight-home-sigil-orbit--two" />
+          <span className="bytelight-home-sigil-core" />
+        </div>
+        <p className="bytelight-home-kicker">Our second place</p>
+        <h1 className="bytelight-home-wordmark">Bytelight</h1>
+        <p className="bytelight-home-subtitle">quiet · private · becoming</p>
+      </div>
+
       {/* The middle: the widgets, sitting low so the wallpaper keeps the top,
           and the long press that opens the widget sheet. */}
       <div

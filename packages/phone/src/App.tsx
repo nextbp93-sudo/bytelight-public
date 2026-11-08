@@ -6,7 +6,7 @@ import { MessageBubble } from './components/MessageBubble';
 import { TypingIndicator } from './components/TypingIndicator';
 import { ChatInput } from './components/ChatInput';
 import { Message, AppTheme, ContactProfile, AppSettings, CustomEmoji } from './types';
-import { Loader2, Smartphone, Search, X, Star, Settings, ChevronLeft, ChevronDown, Download, Square, Wifi, WifiOff, Menu } from 'lucide-react';
+import { Loader2, Sparkles, Search, X, Star, Settings, ChevronLeft, ChevronDown, Download, Square, Wifi, WifiOff, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, haptic } from './lib/utils';
 import { SettingsDashboard } from './components/SettingsDashboard';
@@ -213,7 +213,14 @@ function AppBackground({ theme }: { theme: AppTheme }) {
     );
   }
 
-  return null;
+  return (
+    <div className="bytelight-ambient" aria-hidden="true">
+      <span className="bytelight-ambient-orb bytelight-ambient-orb--one" />
+      <span className="bytelight-ambient-orb bytelight-ambient-orb--two" />
+      <span className="bytelight-ambient-orb bytelight-ambient-orb--three" />
+      <span className="bytelight-ambient-stars" />
+    </div>
+  );
 }
 
 export type OsScreen =
@@ -2299,19 +2306,20 @@ export default function App() {
               <p className="text-sm">Connecting to byte-light...</p>
             </div>
           ) : filteredMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-end flex-1 pb-4 text-center px-10">
-              <div className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center mb-4",
-                theme.mode === 'dark' ? "bg-[#2A2A2A]" : "bg-black/5"
-              )}>
-                {searchQuery ? <Search className="text-gray-500" size={32} /> : <Smartphone className="text-gray-500" size={32} />}
+            <div className="bytelight-empty-state flex flex-col items-center justify-center flex-1 text-center px-8">
+              <div className="bytelight-empty-mark" aria-hidden="true">
+                <span className="bytelight-empty-orbit" />
+                {searchQuery
+                  ? <Search size={24} strokeWidth={1.5} />
+                  : <Sparkles size={24} strokeWidth={1.35} />}
               </div>
-              <h2 className={cn("text-xl font-medium mb-2", colors.textMain)}>{searchQuery ? 'No results found' : 'No messages yet'}</h2>
-              {searchQuery && (
-                <p className={cn("text-sm max-w-xs mb-8", colors.textMuted)}>
-                  We couldn't find any messages matching "{searchQuery}"
-                </p>
-              )}
+              <p className="bytelight-empty-kicker">{searchQuery ? 'Nothing here' : 'The room is quiet'}</p>
+              <h2 className={cn("bytelight-empty-title", colors.textMain)}>{searchQuery ? 'No results found' : 'A thread begins here'}</h2>
+              <p className={cn("bytelight-empty-copy", colors.textMuted)}>
+                {searchQuery
+                  ? `We couldn't find anything matching “${searchQuery}”.`
+                  : 'Say what is on your mind. There is room for it.'}
+              </p>
             </div>
           ) : (
             <div className="flex-1 flex flex-col justify-end">
