@@ -15,6 +15,7 @@ import { createPublicRoutes } from './public-routes.js';
 import { createInternalRoutes } from './internal-routes.js';
 import ccRoutes from './cc-routes.js';
 import { createPreferencesRoutes } from './preferences-routes.js';
+import { createAppSettingsRoutes } from './app-settings-routes.js';
 import { createProfilesRoutes } from './profiles-routes.js';
 import { createCompanionSettingsRoutes } from './companion-settings-routes.js';
 import { createRoomsRoutes } from './rooms-routes.js';
@@ -92,6 +93,9 @@ router.use('/cc', (req, res, next) => {
 // 5. Protected concern routers
 // ----------------------------------------------------------------------------
 router.use(createPreferencesRoutes());
+// Cross-browser phone setup (theme, contacts and app settings). Kept distinct
+// from /settings, which is the agent's flat config KV endpoint.
+router.use(createAppSettingsRoutes());
 // Speaker profiles (companion-a/companion-b/user/fallback avatars + names) — ported from
 // Thornvale. Sits with the other user-facing settings routers.
 router.use(createProfilesRoutes());

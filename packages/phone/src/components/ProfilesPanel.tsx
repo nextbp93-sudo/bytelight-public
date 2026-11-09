@@ -24,6 +24,7 @@ export function ProfilesPanel({ themeConfig, themeMode }: ProfilesPanelProps) {
   const [draft, setDraft] = useState<Profiles>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -32,6 +33,7 @@ export function ProfilesPanel({ themeConfig, themeMode }: ProfilesPanelProps) {
     loadProfiles().then((p) => {
       if (stale) return;
       setDraft(p ? JSON.parse(JSON.stringify(p)) : {});
+      setDirty(false);
       setLoading(false);
     });
     return () => { stale = true; };
@@ -47,8 +49,11 @@ export function ProfilesPanel({ themeConfig, themeMode }: ProfilesPanelProps) {
     return draft[key]?.name || key;
   };
 
-  const patch = (key: string, field: 'name' | 'emoji' | 'image', value: string | null) =>
+  const patch = (key: string, field: 'name' | 'emoji' | 'image', value: string | null) => {
     setDraft((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+    setDirty(true);
+    setStatus(null);
+  };
 
   async function upload(key: string, file: File) {
     setUploading(key);
@@ -72,8 +77,9 @@ export function ProfilesPanel({ themeConfig, themeMode }: ProfilesPanelProps) {
     setStatus(null);
     const ok = await saveProfiles(draft);
     setSaving(false);
+    if (ok) setDirty(false);
     setStatus(ok ? 'Saved' : 'Save failed');
-    setTimeout(() => setStatus(null), 3000);
+    if (ok) setTimeout(() => setStatus(null), 3000);
   }
 
   if (loading) {
@@ -148,16 +154,22 @@ export function ProfilesPanel({ themeConfig, themeMode }: ProfilesPanelProps) {
         );
       })}
 
-      <div className="flex items-center gap-3 px-1">
+      <div className={cn(
+        'sticky bottom-2 z-20 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur-xl',
+        colors.panelBg,
+        colors.panelBorder,
+      )}>
+        <span className={cn('text-xs', status === 'Save failed' ? 'text-red-400' : colors.textMuted)}>
+          {status ?? (dirty ? 'Unsaved changes' : 'Everything saved')}
+        </span>
         <button
           onClick={() => void save()}
-          disabled={saving}
+          disabled={saving || !dirty}
           className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-60"
           style={{ background: colors.accent, color: 'var(--bytelight-on-accent)' }}
         >
           {saving ? 'Saving…' : 'Save profiles'}
         </button>
-        {status && <span className={cn('text-xs', colors.textMuted)}>{status}</span>}
       </div>
     </div>
   );
