@@ -131,7 +131,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
     // the tiles carry their own glass (owner's call, Jul 12 2026).
     <motion.div
       key="appdrawer"
-      className={cn('absolute inset-0 z-40 flex flex-col', colors.textMain)}
+      className={cn('bytelight-app-drawer absolute inset-0 z-40 flex flex-col', colors.textMain)}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.25 } }}
@@ -140,7 +140,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
       style={{ pointerEvents: present ? undefined : 'none' }}
     >
       <header
-        className={cn('bytelight-shell-header flex items-center gap-2 px-3 pb-3', colors.pageBg)}
+        className={cn('bytelight-shell-header bytelight-app-drawer-header flex items-center gap-2 px-3 pb-3', colors.pageBg)}
         style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}
       >
         {/* Back to home — a normal header back arrow like every other app.
@@ -153,7 +153,10 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
         >
           <ChevronLeft size={20} />
         </button>
-        <h1 className={cn('text-base font-semibold', colors.textMain)}>Apps</h1>
+        <div className="min-w-0">
+          <p className="bytelight-room-kicker">Bytelight</p>
+          <h1 className={cn('text-lg font-semibold leading-none', colors.textMain)}>Rooms</h1>
+        </div>
         <div className="ml-auto flex items-center gap-1">
           {editing ? (
             <button
@@ -211,7 +214,13 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
         </div>
       )}
 
-      <div className="bytelight-app-body flex-1 overflow-y-auto scrollbar-hide px-5 py-4">
+      <div className="bytelight-app-body bytelight-app-grid flex-1 overflow-y-auto scrollbar-hide px-5 py-4">
+        {!editing && (
+          <div className="bytelight-app-grid-heading">
+            <span>{filteredApps ? 'Matches' : 'All rooms'}</span>
+            <span>{filteredApps?.length ?? slots.filter(Boolean).length}</span>
+          </div>
+        )}
         {filteredApps ? (
           filteredApps.length === 0 ? (
             <p className={cn('text-center py-12 text-xs', colors.textMuted)}>No apps match "{query}"</p>
@@ -224,11 +233,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                   className="flex flex-col items-center gap-1 select-none cursor-pointer"
                 >
                   <div
-                    className="bytelight-app-tile flex h-11 w-11 items-center justify-center rounded-xl"
+                    className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl"
                   >
                     <app.icon className="h-5 w-5" />
                   </div>
-                  <span className={cn('bytelight-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
+                  <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
                 </div>
               ))}
             </div>
@@ -251,7 +260,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                 >
                   <div
                     className={cn(
-                      'h-11 w-11 rounded-xl border-2 border-dashed',
+                      'h-12 w-12 rounded-2xl border-2 border-dashed',
                       editing ? colors.panelBorder : 'border-transparent',
                     )}
                   />
@@ -274,11 +283,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                 style={editing ? { touchAction: 'none' } : undefined}
               >
                 <div
-                  className="bytelight-app-tile flex h-11 w-11 items-center justify-center rounded-xl"
+                  className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl"
                 >
                   <app.icon className="h-5 w-5" />
                 </div>
-                <span className={cn('bytelight-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
+                <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
               </div>
             );
           })}
@@ -299,11 +308,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
           }}
         >
           <div
-            className="bytelight-app-tile flex h-11 w-11 items-center justify-center rounded-xl shadow-md"
+            className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl shadow-md"
           >
             <draggingApp.icon className="h-5 w-5" />
           </div>
-          <span className={cn('bytelight-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{draggingApp.name}</span>
+          <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{draggingApp.name}</span>
         </div>
       )}
     </motion.div>

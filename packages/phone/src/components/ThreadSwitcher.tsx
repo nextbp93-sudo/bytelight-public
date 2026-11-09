@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Home } from 'lucide-react';
+import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Home, MessageCircle } from 'lucide-react';
 import { ThemeConfig, contrastTextColor } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
 import {
@@ -389,10 +389,13 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={cn('absolute inset-y-0 left-0 z-40 flex w-[85%] max-w-sm flex-col border-r', colors.panelBg, colors.panelBorder)}
+            className={cn('bytelight-thread-panel absolute inset-y-0 left-0 z-40 flex w-[85%] max-w-sm flex-col border-r', colors.panelBg, colors.panelBorder)}
           >
             <div className="flex items-center justify-between px-4 pb-2" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
-              <h2 className={cn('text-base font-semibold', colors.textMain)}>Threads</h2>
+              <div>
+                <p className="bytelight-room-kicker">Your conversations</p>
+                <h2 className={cn('text-lg font-semibold leading-none', colors.textMain)}>Threads</h2>
+              </div>
               <button onClick={onClose} className={cn('rounded-full p-1.5 hover:bg-black/10 dark:hover:bg-white/10', colors.textMuted)}>
                 <X size={18} />
               </button>
@@ -425,6 +428,18 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                 )
               ) : (
                 <>
+                  {threads.length === 0 && !showArchived && (
+                    <div className="bytelight-thread-empty">
+                      <div className="bytelight-thread-empty-mark" aria-hidden="true">
+                        <MessageCircle size={22} strokeWidth={1.4} />
+                      </div>
+                      <p className="bytelight-thread-empty-kicker">The shelf is waiting</p>
+                      <h3 className={cn('bytelight-thread-empty-title', colors.textMain)}>No threads yet</h3>
+                      <p className={cn('bytelight-thread-empty-copy', colors.textMuted)}>
+                        Start a conversation and it will have a place here.
+                      </p>
+                    </div>
+                  )}
                   {grouped.pinned.length > 0 && (
                     <>
                       {groupTitle('Pinned')}
