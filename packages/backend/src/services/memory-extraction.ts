@@ -56,6 +56,12 @@ import { proposeEdit } from './memory-proposals.js';
 import { fileCaughtIntention, listOpenIntentions } from './db/intentions.js';
 import type { AgentService } from './agent.js';
 import { extractViaClaudeSdk } from './archivist-sdk.js';
+import {
+  buildArchivistAceHandoff,
+  enqueueAceContinuityHandoff,
+  flushAceContinuityOutbox,
+  type AceContinuityItem,
+} from './ace-continuity.js';
 
 const MIN_MESSAGES = 8;
 const MAX_THREADS_PER_RUN = 3;
@@ -319,10 +325,11 @@ export function archivistMode(): 'propose' | 'write' {
 }
 
 /** Exported for tests. */
-export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: number; skipped: string[] } {
+export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: number; skipped: string[]; accepted: MemoryOp[] } {
   const mode = archivistMode();
   let applied = 0;
   const skipped: string[] = [];
+  const accepted: MemoryOp[] = [];
   for (const op of ops) {
     // A promise with a when is filed straight into intentions (the operator's call:
     // nothing to approve), whatever the memory mode.
@@ -330,6 +337,7 @@ export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: num
       const result = sourceThread ? fileCaughtIntention(op, sourceThread) : 'refused';
       if (result === 'filed') {
         applied++;
+        accepted.push(op);
         mlog(`caught a promise: ${op.companion} — "${String(op.text).slice(0, 60)}"`);
       } else {
         skipped.push(`intention ${op.companion}: ${result}`);
@@ -373,6 +381,7 @@ export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: num
           continue;
         }
         applied++;
+        accepted.push({ ...op, scope, label });
       } else if (op.op === 'replace' && op.old_text && op.new_text) {
         if (mode === 'write') {
           replaceInBlock(scope, op.label, op.old_text, op.new_text, EXTRACTION_WRITE);
@@ -390,6 +399,7 @@ export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: num
           continue;
         }
         applied++;
+        accepted.push({ ...op, scope });
       } else {
         skipped.push(`malformed op '${op.op}' on ${scope}/${op.label}`);
       }
@@ -397,7 +407,22 @@ export function applyOps(ops: MemoryOp[], sourceThread?: string): { applied: num
       skipped.push(`${op.op} ${op.scope}/${op.label}: ${err instanceof Error ? err.message : err}`);
     }
   }
-  return { applied, skipped };
+  return { applied, skipped, accepted };
+}
+
+function continuityItems(ops: MemoryOp[]): AceContinuityItem[] {
+  return ops.flatMap((op): AceContinuityItem[] => {
+    if (op.op === 'append' && op.content) {
+      return [{ kind: 'memory', scope: op.scope, label: op.label, text: op.content }];
+    }
+    if (op.op === 'replace' && op.new_text) {
+      return [{ kind: 'correction', scope: op.scope, label: op.label, text: op.new_text }];
+    }
+    if (op.op === 'intention' && op.text) {
+      return [{ kind: 'intention', scope: op.companion || 'shared', label: 'intentions', text: op.text }];
+    }
+    return [];
+  });
 }
 
 function threadsWithActivity(): ThreadActivity[] {
@@ -657,10 +682,28 @@ Output the JSON array of memory edit and intention operations now.`;
     throw new Error(`unparseable extractor output, cursor held — ${err instanceof Error ? err.message : err}; raw: ${snippet}`);
   }
 
-  const { applied, skipped } = applyOps(ops, threadId);
+  const { applied, skipped, accepted } = applyOps(ops, threadId);
   setExtractionCursor(threadId, batchMaxSeq);
   const verb = archivistMode() === 'write' ? 'applied' : 'handed over for review';
   mlog(`${activity.thread_name}: ${ops.length} ops proposed, ${applied} ${verb}${skipped.length ? `, skipped: ${skipped.join(' | ')}` : ''}`);
+
+  const handoff = buildArchivistAceHandoff({
+    threadId,
+    threadName: activity.thread_name,
+    startSequence: batchStartSeq,
+    endSequence: batchMaxSeq,
+    items: continuityItems(accepted),
+  });
+  if (handoff) {
+    enqueueAceContinuityHandoff(handoff);
+    try {
+      const delivery = await flushAceContinuityOutbox();
+      if (delivery.sent > 0) mlog(`ACE bridge: sent ${delivery.sent} curated handoff${delivery.sent === 1 ? '' : 's'}`);
+      if (delivery.error) mlog(`ACE bridge: ${delivery.queued} queued — ${delivery.error}`);
+    } catch (err) {
+      mlog(`ACE bridge: handoff queued for retry — ${err instanceof Error ? err.message : err}`);
+    }
+  }
   return applied;
 }
 
@@ -669,6 +712,13 @@ export async function runMemoryExtraction(
   onlyThreadId?: string
 ): Promise<{ processed: number; applied: number; failed: number }> {
   setConfig('memext.last_attempt_at', new Date().toISOString());
+  try {
+    const delivery = await flushAceContinuityOutbox();
+    if (delivery.sent > 0) mlog(`ACE bridge: retried and sent ${delivery.sent} queued handoff${delivery.sent === 1 ? '' : 's'}`);
+    if (delivery.error) mlog(`ACE bridge: ${delivery.queued} still queued — ${delivery.error}`);
+  } catch (err) {
+    mlog(`ACE bridge: queued handoffs remain for retry — ${err instanceof Error ? err.message : err}`);
+  }
   // THE BILLING WITNESS. Two comments in this codebase say a Claude path
   // outside the warm CLI lane bills metered credits; the other reading is that
   // the SDK rides the subscription. Rather than argue it, read the owner's weekly
