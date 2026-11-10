@@ -440,6 +440,9 @@ export function initDb(dbPath: string): Database.Database {
     }
   }
 
+  // Writing privately must still work when the optional Mind Bridge is absent.
+  runMigration(db, 'migrations/049_local_journal_fallback.sql', { required: true });
+
   // 001 wrote push_subscriptions with a type list of web_push and apns, which
   // predates Android push, so an FCM device token from the app would be
   // refused by the CHECK constraint. SQLite cannot alter a constraint in

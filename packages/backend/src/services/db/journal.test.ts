@@ -87,3 +87,23 @@ test('network failures become typed errors', async () => {
   await assert.rejects(() => journal.getJournalEntry('d:1'), (error: unknown) =>
     error instanceof journal.JournalRemoteError && error.message === 'Could not reach the Mind API: offline');
 });
+
+test('missing Mind configuration falls back to durable local journal storage', async () => {
+  const oldUrl = process.env.MIND_API_URL;
+  const oldKey = process.env.MIND_API_KEY;
+  delete process.env.MIND_API_URL;
+  delete process.env.MIND_API_KEY;
+  try {
+    const created = await journal.createJournalEntry({
+      id: 'local-entry', companionId: 'companion-a', entryType: 'journal', content: 'private local truth',
+    });
+    assert.match(created.id, /^jl:/);
+    assert.equal(created.content, 'private local truth');
+    const listed = await journal.listJournalEntries({ companionId: 'companion-a', entryType: 'journal' });
+    assert.ok(listed.entries.some(entry => entry.id === created.id));
+    assert.equal(calls.length, 0);
+  } finally {
+    if (oldUrl === undefined) delete process.env.MIND_API_URL; else process.env.MIND_API_URL = oldUrl;
+    if (oldKey === undefined) delete process.env.MIND_API_KEY; else process.env.MIND_API_KEY = oldKey;
+  }
+});

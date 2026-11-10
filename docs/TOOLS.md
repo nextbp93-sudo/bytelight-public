@@ -352,10 +352,10 @@ The `sc` CLI is the recommended interface. Direct API access is available for cu
 
 ### Companion Journal (Wave 2 — stored in the Mind)
 
-Use the configured backend listener (default `http://127.0.0.1:3002`). These tools require localhost and use companion registry IDs. Entries are stored in the remote Mind, in the same archive as the long-standing Mind journals — writing here IS writing to the brain:
+Use the configured backend listener (default `http://127.0.0.1:3002`). These tools require localhost and use companion registry IDs. Entries use the remote Mind when its URL and key are configured; otherwise they are stored durably and privately inside this house:
 
 - `POST /api/internal/journal`: `{ "companion": "<registry id>", "content": "...", "entryType": "journal" }`. Use `entryType: "dream"` with optional `dreamType` and `emergedQuestion` for a dream.
-- `GET /api/internal/journal?companion=<id>&type=dream`: read entries with effective vividness. Omit filters to read all; `limit` defaults to 20, maximum 100. Entry ids are prefixed — `j:<n>` for journals, `d:<n>` for dreams.
+- `GET /api/internal/journal?companion=<id>&type=dream`: read entries with effective vividness. Omit filters to read all; `limit` defaults to 20, maximum 100. Remote ids are `j:<n>`/`d:<n>`; local fallback ids are `jl:<uuid>`/`dl:<uuid>`.
 - `PATCH /api/internal/journal/:id`: `{ "content": "..." }` edits content.
 - `POST /api/internal/journal/:id/recall`: for dreams, restores up to 15 vividness and resets the decay clock; for journals, a receipt-only acknowledgement.
 - `POST /api/internal/journal/:id/anchor`: for dreams, freezes current vividness. It does **not** automatically file to Cortex; use its configured tools separately when desired.
