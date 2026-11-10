@@ -34,12 +34,16 @@ test('transport-specific plumbing and out-of-scope side notes do not leak in', (
   }
 });
 
-test('service restarts stay operator-owned', () => {
-  assert.match(CODEX_OPERATING_CONTRACT, /Never restart a service/);
+test('owner work may complete its own deployment and restart loop', () => {
+  assert.doesNotMatch(CODEX_OPERATING_CONTRACT, /Never restart a service/);
+  assert.match(CODEX_OPERATING_CONTRACT, /test, commit and push to[\s\S]*build[\s\S]*restart/);
+  assert.match(CODEX_OPERATING_CONTRACT, /verify[\s\S]*\/api\/health/);
+  assert.match(CODEX_OPERATING_CONTRACT, /Preserve[\s\S]*bytelight\.yaml[\s\S]*data\//);
 });
 
 test('coding workspace writes only to Jaclyn\'s fork', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /origin.*Jaclyn's writable fork/s);
   assert.match(CODEX_OPERATING_CONTRACT, /Never push to\s+`upstream`/);
-  assert.match(CODEX_OPERATING_CONTRACT, /Editing the checkout does not deploy/);
+  assert.match(CODEX_OPERATING_CONTRACT, /Editing the checkout alone does not deploy/);
+  assert.match(CODEX_OPERATING_CONTRACT, /Do not wait for a separate\s+operator/);
 });
