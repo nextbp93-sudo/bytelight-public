@@ -331,6 +331,29 @@ export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-..."
 pm2 restart bytelight --update-env
 ```
 
+### Codex tools fail with `bwrap: setting up uid map: Permission denied`
+
+Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor. Codex
+uses bubblewrap to enforce its workspace-write sandbox, so a missing bwrap
+profile can prevent every shell command and patch from starting even when the
+configured workspace permissions are correct.
+
+Install the repository's narrow per-application profile instead of disabling
+the VM-wide user-namespace restriction:
+
+```bash
+sudo install -o root -g root -m 0644 \
+  ops/apparmor/usr.bin.bwrap /etc/apparmor.d/usr.bin.bwrap
+sudo apparmor_parser -r /etc/apparmor.d/usr.bin.bwrap
+
+# This should exit successfully as the account that runs byte-light.
+sudo -u bytelight bwrap --ro-bind / / --dev /dev --proc /proc true
+```
+
+The profile permits `/usr/bin/bwrap` to create the private user namespace
+needed by the sandbox. It does not grant byte-light root access or widen
+Codex's configured writable workspace.
+
 ### Messages don't send (WebSocket issues)
 
 Check the Content Security Policy. Your domain must be in the CSP `connect-src` directive. This is set in `packages/backend/src/server.ts` — look for `connectSrc`. Add your domain as `wss://yourdomain.com`, rebuild, restart.

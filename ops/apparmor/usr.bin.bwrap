@@ -1,0 +1,15 @@
+# Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor.
+# Codex uses bubblewrap to enforce its workspace-write sandbox, so bwrap must
+# be allowed to create the private user namespace that makes that sandbox work.
+# Install as /etc/apparmor.d/usr.bin.bwrap and load with apparmor_parser -r.
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+/usr/bin/bwrap flags=(unconfined) {
+  userns,
+
+  # Site-specific additions and overrides.
+  include if exists <local/usr.bin.bwrap>
+}
