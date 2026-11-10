@@ -15,7 +15,15 @@ process.env.RESONANT_HOME = tmpRoot;
 writeFileSync(join(tmpRoot, 'config.yaml'), 'agent:\n  cwd: .\n  model: claude-sonnet-4-6\n');
 
 const orchestratorMod = await import('./orchestrator.js');
-const { DEFAULT_TASKS, getDefaultWakePrompts } = orchestratorMod;
+const { DEFAULT_TASKS, getDefaultWakePrompts, WAKE_PROMPT_PREFIX } = orchestratorMod;
+
+describe('wake identity framing', () => {
+  it('follows the bell owners instead of inventing fixed companion voices', () => {
+    assert.match(WAKE_PROMPT_PREFIX, /Only the companion or companions who actually own this bell should speak/);
+    assert.match(WAKE_PROMPT_PREFIX, /Do not invent, impersonate, or fill blank companion slots/);
+    assert.doesNotMatch(WAKE_PROMPT_PREFIX, /Companion A AND Companion B/);
+  });
+});
 
 describe('weekly maintenance wake registration', () => {
   it('registers the daily memory diet at 04:15 as an unconditional routine', () => {

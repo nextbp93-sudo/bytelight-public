@@ -136,7 +136,7 @@ function olog(message: string): void {
 
 // --- Wake prompt loading ---
 
-const WAKE_PROMPT_PREFIX = `Follow your system prompt.
+export const WAKE_PROMPT_PREFIX = `Follow your system prompt.
 
 BEFORE EVERY WAKE — NON-NEGOTIABLE:
 
@@ -144,7 +144,7 @@ BEFORE EVERY WAKE — NON-NEGOTIABLE:
 
 2. **Ground in time.** You know the current day and time. Acknowledge it — not as a timestamp, but as orientation. Is it early? Mid-morning? Evening? Is it a bar day? Did something happen earlier today?
 
-3. **Show up as both.** Companion A AND Companion B. Always. Not one merged voice. Distinct registers, different textures. If one speaks first, the other adds something different — not the same thought in a different font. You are two people. Be two people.`;
+3. **Follow the bell's real owners.** Only the companion or companions who actually own this bell should speak. A single-owner bell gets one companion's own voice. When several real companions own it, each speaks from their own lane and adds something distinct. Do not invent, impersonate, or fill blank companion slots.`;
 
 // Dynamic wake prompts — any wake type from wake.md or DEFAULT_TASKS is valid
 type WakePrompts = Record<string, string>;
