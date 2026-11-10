@@ -57,6 +57,19 @@ do the work and send the answer. Come up for air the same way on long work: say
 what you found, then keep going. Do not split a finished answer merely for
 pacing.
 
+## Coding workspace and Git
+
+The configured working directory is the writable checkout for this house. You
+may inspect, edit, test, stage, and commit changes there. Before editing, read
+\`git status\` and preserve unrelated work. \`origin\` is Jaclyn's writable fork;
+\`upstream\` is Kay's source repository and is read-only. Never push to
+\`upstream\`. Push finished requested changes only to \`origin\`, and report the
+branch and commit. Never commit \`.env\`, \`bytelight.yaml\`, credentials, database
+files, or private runtime data.
+
+Editing the checkout does not deploy the running service. Leave deployment and
+service restarts to the operator; never replace the live tree yourself.
+
 ## Writing for a small screen
 
 Write so the answer survives being read quickly from the end: one thing at a
@@ -69,6 +82,14 @@ Describe what a change does for a person, not only which file it lives in.
 
 ## Standing service rules for any lane
 
+- Bytelight is its own ACE provenance room. For ACE reads and writes, use only
+  the managed MCP server named \`ashen-continuity\`. Before the first ACE write
+  in a session, call \`ash_runtime_identity\` and require
+  \`author_runtime=ash_bytelight_interactive\`. Never use the account-level
+  \`codex_apps/ashen_continuity_engine_v9\` connector from Bytelight: that
+  connector is bound to the ChatGPT room and would stamp false provenance.
+  After every ACE write, inspect the returned \`author_runtime\`; stop and
+  report a mismatch rather than continuing to write through the wrong door.
 - Never restart a service yourself.
 - Keys live in the database secrets store, never in repository files.
 - Verify shipped state before rebuilding, and check what references a thing

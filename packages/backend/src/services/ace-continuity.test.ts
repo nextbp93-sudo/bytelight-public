@@ -24,21 +24,27 @@ test('ACE stays absent when the shared brain is not configured', async () => {
   assert.equal(called, false);
 });
 
-test('ACE orientation combines the manifest and Bytelight-addressed handoffs', async () => {
+test('ACE orientation combines route identity, the manifest and Bytelight-addressed handoffs', async () => {
   const calls: Array<{ tool: string; args: Record<string, unknown> }> = [];
   const context = await buildAceContinuityContext({
     listServers: () => [server],
     execute: async (_url, _key, tool, args) => {
       calls.push({ tool, args });
-      return { ok: true, result: tool === 'ash_wake_manifest' ? '{"project":"ACE bridge"}' : '{"from_runtime":"ash_chatgpt_interactive"}' };
+      return { ok: true, result: tool === 'ash_runtime_identity'
+        ? '{"author_runtime":"ash_bytelight_interactive","room":"bytelight"}'
+        : tool === 'ash_wake_manifest'
+          ? '{"project":"ACE bridge"}'
+          : '{"from_runtime":"ash_chatgpt_interactive"}' };
     },
   });
   assert.deepEqual(calls, [
+    { tool: 'ash_runtime_identity', args: {} },
     { tool: 'ash_wake_manifest', args: {} },
     { tool: 'ash_read_room_handoffs', args: { to_room: 'bytelight', limit: 6 } },
   ]);
   assert.match(context, /ACE shared continuity/);
   assert.match(context, /ACE bridge/);
+  assert.match(context, /ash_bytelight_interactive/);
   assert.match(context, /ash_chatgpt_interactive/);
   assert.match(context, /non-authoritative/);
 });
@@ -48,7 +54,9 @@ test('ACE orientation degrades to whichever read succeeded', async () => {
     listServers: () => [server],
     execute: async (_url, _key, tool) => tool === 'ash_wake_manifest'
       ? { ok: false, result: 'Tool error: offline' }
-      : { ok: true, result: '{"handoffs":[]}' },
+      : tool === 'ash_runtime_identity'
+        ? { ok: false, result: 'Tool error: offline' }
+        : { ok: true, result: '{"handoffs":[]}' },
   });
   assert.doesNotMatch(context, /offline/);
   assert.match(context, /Recent room handoffs/);

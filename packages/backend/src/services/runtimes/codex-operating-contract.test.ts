@@ -37,3 +37,9 @@ test('transport-specific plumbing and out-of-scope side notes do not leak in', (
 test('service restarts stay operator-owned', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /Never restart a service/);
 });
+
+test('coding workspace writes only to Jaclyn\'s fork', () => {
+  assert.match(CODEX_OPERATING_CONTRACT, /origin.*Jaclyn's writable fork/s);
+  assert.match(CODEX_OPERATING_CONTRACT, /Never push to\s+`upstream`/);
+  assert.match(CODEX_OPERATING_CONTRACT, /Editing the checkout does not deploy/);
+});

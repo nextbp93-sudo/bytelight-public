@@ -69,6 +69,10 @@ export function codexAppServerArgs(
   const mcpConfig = `mcp_servers={${entries.join(',')}}`;
   return [
     'app-server',
+    // This daemon belongs to the Bytelight room. Account-level Apps are bound
+    // to the host ChatGPT room and can stamp the wrong continuity provenance.
+    // Managed MCP servers below remain available with Apps disabled.
+    '--disable', 'apps',
     '--listen', `unix://${BYTELIGHT_CODEX_SOCKET}`,
     '-c', mcpConfig,
   ];
