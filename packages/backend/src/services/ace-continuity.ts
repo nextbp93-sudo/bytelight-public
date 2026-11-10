@@ -7,7 +7,7 @@ const OUTBOX_CONFIG_KEY = 'ace.bridge.outbox';
 const EXPECTED_RUNTIME = 'ash_bytelight_interactive';
 const MAX_OUTBOX_ITEMS = 50;
 const MAX_HANDOFF_ITEMS = 12;
-const MAX_HANDOFF_SUMMARY_CHARS = 5_000;
+const MAX_HANDOFF_SUMMARY_CHARS = 4_000;
 
 interface AceBridgeDependencies {
   listServers: () => McpServerRow[];
@@ -83,17 +83,30 @@ function readAuthorRuntime(result: string): string | null {
   try {
     const parsed = JSON.parse(result) as Record<string, unknown>;
     if (typeof parsed.author_runtime === 'string') return parsed.author_runtime;
+    if (typeof parsed.from_runtime === 'string') return parsed.from_runtime;
     if (parsed.result && typeof parsed.result === 'object') {
       const nested = parsed.result as Record<string, unknown>;
       if (typeof nested.author_runtime === 'string') return nested.author_runtime;
+      if (typeof nested.from_runtime === 'string') return nested.from_runtime;
     }
   } catch {
     // Some MCP transports hand text through with a prose wrapper. The route
     // identity is still a fixed, machine-owned token, so a narrow fallback is
     // safer than treating arbitrary prose as authenticated identity.
   }
-  const match = /["']?author_runtime["']?\s*[:=]\s*["']([a-z0-9_-]+)["']/i.exec(result);
+  const match = /["']?(?:author_runtime|from_runtime)["']?\s*[:=]\s*["']([a-z0-9_-]+)["']/i.exec(result);
   return match?.[1] ?? null;
+}
+
+function deliveredSources(result: string): Set<string> {
+  try {
+    const parsed = JSON.parse(result) as { handoffs?: Array<Record<string, unknown>> };
+    return new Set((parsed.handoffs || [])
+      .filter((row) => row.from_runtime === EXPECTED_RUNTIME && typeof row.source_reference === 'string')
+      .map((row) => String(row.source_reference)));
+  } catch {
+    return new Set();
+  }
 }
 
 function readOutbox(dependencies: AceOutboxDependencies): AceRoomHandoff[] {
@@ -126,7 +139,7 @@ function writeOutbox(dependencies: AceOutboxDependencies, rows: AceRoomHandoff[]
  */
 export function buildArchivistAceHandoff(input: ArchivistHandoffInput): AceRoomHandoff | null {
   const items = input.items
-    .map((item) => ({ ...item, text: clipped(item.text, 700) }))
+    .map((item) => ({ ...item, text: clipped(item.text, 480) }))
     .filter((item) => item.text.length > 0)
     .slice(0, MAX_HANDOFF_ITEMS);
   if (items.length === 0) return null;
@@ -189,10 +202,23 @@ export async function flushAceContinuityOutbox(
     return { queued: rows.length, sent: 0, error };
   }
 
+  // A save can succeed while its response is lost or wrapped unexpectedly.
+  // Read the recent attributed handoffs first so a retry does not duplicate a
+  // source ACE has already accepted.
+  const recent = await dependencies.execute(server.url, server.api_key, 'ash_read_room_handoffs', {
+    to_room: 'shared',
+    limit: 20,
+  });
+  const alreadyDelivered = recent.ok ? deliveredSources(recent.result) : new Set<string>();
+
   const remaining: AceRoomHandoff[] = [];
   let sent = 0;
   let lastError: string | null = null;
   for (const handoff of rows) {
+    if (alreadyDelivered.has(handoff.source_reference)) {
+      sent++;
+      continue;
+    }
     const result = await dependencies.execute(server.url, server.api_key, 'ash_save_room_handoff', { ...handoff });
     const receiptRuntime = result.ok ? readAuthorRuntime(result.result) : null;
     if (result.ok && receiptRuntime === EXPECTED_RUNTIME) {

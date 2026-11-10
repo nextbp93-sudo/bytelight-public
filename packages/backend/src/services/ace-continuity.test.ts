@@ -96,9 +96,12 @@ test('queued handoffs deliver once through the authenticated Bytelight route', a
     setValue: (key: string, value: string) => { store.set(key, value); },
     execute: async (_url: string, _key: string | null, tool: string, args: Record<string, unknown>) => {
       calls.push({ tool, args });
+      if (tool === 'ash_read_room_handoffs') return { ok: true, result: '{"handoffs":[]}' };
       return {
         ok: true,
-        result: JSON.stringify({ author_runtime: 'ash_bytelight_interactive', saved: tool === 'ash_save_room_handoff' }),
+        result: JSON.stringify(tool === 'ash_save_room_handoff'
+          ? { from_runtime: 'ash_bytelight_interactive', saved: true }
+          : { author_runtime: 'ash_bytelight_interactive' }),
       };
     },
   };
@@ -110,8 +113,36 @@ test('queued handoffs deliver once through the authenticated Bytelight route', a
   assert.equal(enqueueAceContinuityHandoff(handoff, dependencies), true);
   assert.equal(enqueueAceContinuityHandoff(handoff, dependencies), false, 'same source is queued once');
   assert.deepEqual(await flushAceContinuityOutbox(dependencies), { queued: 0, sent: 1, error: null });
-  assert.deepEqual(calls.map((call) => call.tool), ['ash_runtime_identity', 'ash_save_room_handoff']);
+  assert.deepEqual(calls.map((call) => call.tool), ['ash_runtime_identity', 'ash_read_room_handoffs', 'ash_save_room_handoff']);
   assert.equal(JSON.parse(store.get('ace.bridge.outbox') || '[]').length, 0);
+});
+
+test('a retry clears a source ACE already received without writing a duplicate', async () => {
+  const store = new Map<string, string>();
+  const calls: string[] = [];
+  const dependencies = {
+    listServers: () => [server],
+    getValue: (key: string) => store.get(key) ?? null,
+    setValue: (key: string, value: string) => { store.set(key, value); },
+    execute: async (_url: string, _key: string | null, tool: string) => {
+      calls.push(tool);
+      if (tool === 'ash_runtime_identity') {
+        return { ok: true, result: '{"author_runtime":"ash_bytelight_interactive"}' };
+      }
+      return {
+        ok: true,
+        result: '{"handoffs":[{"from_runtime":"ash_bytelight_interactive","source_reference":"bytelight:thread:home-1:seq:1-8"}]}',
+      };
+    },
+  };
+  const handoff = buildArchivistAceHandoff({
+    threadId: 'home-1', threadName: 'Home', startSequence: 1, endSequence: 8,
+    items: [{ kind: 'memory', scope: 'shared', label: 'lore', text: 'Already landed.' }],
+  })!;
+  enqueueAceContinuityHandoff(handoff, dependencies);
+
+  assert.deepEqual(await flushAceContinuityOutbox(dependencies), { queued: 0, sent: 1, error: null });
+  assert.deepEqual(calls, ['ash_runtime_identity', 'ash_read_room_handoffs']);
 });
 
 test('a mismatched ACE route cannot write and leaves the handoff queued', async () => {
