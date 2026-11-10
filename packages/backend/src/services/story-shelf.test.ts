@@ -47,7 +47,7 @@ test('an opening turn carries the bible, the book, the door to write through, an
   assert.match(prompt, /BIBLE: the stalls trade places every night/);
   assert.ok(prompt.includes(STORY_SHELF_SKILL), 'the turn names where the whole contract is, so a lane without skills can open it');
   // byte-light keeps the tracked copy in skills/ (its .claude/skills is gitignored, installed per house).
-  assert.match(STORY_SHELF_SKILL, /\/skills\/story-shelf\/SKILL\.md$/);
+  assert.match(STORY_SHELF_SKILL, /[\\/]skills[\\/]story-shelf[\\/]SKILL\.md$/);
   assert.match(prompt, /POST http:\/\/127\.0\.0\.1:3999\/api\/internal\/story-shelf\/books\/b1\/pages/);
   assert.match(prompt, /python3 json\.dumps/);
   assert.match(prompt, /The scene is the answer\. Your chat reply is table talk/);
