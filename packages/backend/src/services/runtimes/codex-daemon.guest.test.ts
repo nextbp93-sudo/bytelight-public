@@ -113,9 +113,7 @@ test("the owner's turn keeps house-scoped hands and carries no guest banner", as
   const events = await collect(new InteractiveCodexRuntime(FAST).runTurn(buildInput()));
   assert.deepEqual(events[events.length - 1], { type: 'done', finishReason: 'stop' });
   const start = conn.calls('turn/start')[0].params;
-  assert.equal(start.sandboxPolicy.type, 'workspaceWrite');
-  assert.equal(start.sandboxPolicy.networkAccess, true);
-  assert.equal(start.sandboxPolicy.writableRoots.length, 1);
+  assert.deepEqual(start.sandboxPolicy, { type: 'dangerFullAccess' });
   assert.equal(start.approvalPolicy, 'never');
   assert.doesNotMatch(start.input[0].text, /Guest turn/);
 });

@@ -222,11 +222,7 @@ describe('InteractiveCodexRuntime — turn lifecycle (characterization)', () => 
     // thread/start carries sandbox + approval policy and the system prompt.
     const threadStarts = conn.calls('thread/start');
     assert.equal(threadStarts.length, 1);
-    assert.deepEqual(threadStarts[0].params.sandboxPolicy, {
-      type: 'workspaceWrite',
-      writableRoots: ['/srv/byte-light'],
-      networkAccess: true,
-    });
+    assert.deepEqual(threadStarts[0].params.sandboxPolicy, { type: 'dangerFullAccess' });
     assert.equal(threadStarts[0].params.approvalPolicy, 'never');
     assert.equal(threadStarts[0].params.cwd, '/srv/byte-light');
     // Slice 4: the base instructions now begin with the caller's system prompt

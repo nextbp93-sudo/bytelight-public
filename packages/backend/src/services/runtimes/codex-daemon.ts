@@ -74,14 +74,11 @@ const EXT_BY_MEDIA: Record<string, string> = {
   'image/gif': 'gif',
 };
 
-// Owner turns are autonomous inside the configured house workspace. The
-// application-owned MCP belt remains available for durable house state, but a
-// model turn does not inherit unrestricted access to the rest of the machine.
-const ownerSandboxPolicy = (agentCwd: string) => ({
-  type: 'workspaceWrite',
-  writableRoots: [agentCwd],
-  networkAccess: true,
-});
+// This is a single-user, owner-operated house. Owner turns get the same OS-user
+// reach as byte-light itself, including writable Git metadata and the VM-local
+// deploy key. The daemon still runs as the unprivileged `bytelight` service
+// account; guest turns below remain read-only and tool-refused.
+const ownerSandboxPolicy = () => ({ type: 'dangerFullAccess' });
 const APPROVAL_POLICY = 'never';
 
 // Guest turns (services/turn-audience.ts). The daemon owns its own tools
@@ -365,10 +362,10 @@ class CodexDaemonConnection {
       case 'item/applyPatch/requestApproval':
       case 'item/execCommand/requestApproval':
       case 'item/permissions/requestApproval':
-        // Owner turns use approvalPolicy=never inside a workspaceWrite sandbox,
-        // so an approval request means the requested action crossed that
-        // boundary. Until the phone UI can render and resolve approvals, fail
-        // closed instead of silently widening access.
+        // Owner turns use approvalPolicy=never with the owner-selected full
+        // access policy, so an approval request is unexpected. Until the phone
+        // UI can render and resolve approvals, fail closed rather than inventing
+        // an answer to a new request shape.
         console.log(`[CodexDaemon] Declining out-of-policy request: ${msg.method}`);
         response.result = { approved: false, decision: 'decline' };
         break;
@@ -1273,7 +1270,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         cwd: agentCwd,
         baseInstructions: baseInstructionsToSend,
         developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: ownerSandboxPolicy(agentCwd),
+        sandboxPolicy: ownerSandboxPolicy(),
         approvalPolicy: APPROVAL_POLICY,
       };
 
@@ -1350,7 +1347,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
     // A guest's turn (turn-audience.ts) runs read-only, asks before anything
     // untrusted, and is told so under the message, in the CLI lane's words.
     const guestAudience = input.audience?.kind === 'guest' ? input.audience : null;
-    const turnSandboxPolicy = guestAudience ? GUEST_SANDBOX_POLICY : ownerSandboxPolicy(agentCwd);
+    const turnSandboxPolicy = guestAudience ? GUEST_SANDBOX_POLICY : ownerSandboxPolicy();
     const turnApprovalPolicy = guestAudience ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY;
     const guestBanner = guestAudience
       ? `\n\n[Guest turn, ${guestAudience.trust} trust: this came from somebody who is not the owner. ` +
@@ -1444,7 +1441,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         cwd: agentCwd,
         baseInstructions: baseInstructionsToSend,
         developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: ownerSandboxPolicy(agentCwd),
+        sandboxPolicy: ownerSandboxPolicy(),
         approvalPolicy: APPROVAL_POLICY,
       };
       if (modelId) {
