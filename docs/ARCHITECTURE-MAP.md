@@ -265,7 +265,7 @@ Generalize Discord rules into room policy system for constellation.
 
 ### Journal backend (Wave 2)
 
-`services/db/journal.ts` uses the remote Mind API when both `mind_api_url` and `mind_api_key` are configured. Without that optional bridge, migration `049_local_journal_fallback.sql` keeps journals and dreams durably inside the house under `jl:<uuid>`/`dl:<uuid>` ids, so private writing never depends on external provisioning. Remote ids remain `j:<n>`/`d:<n>`. `routes/api.ts` mounts `routes/journal.ts` at `/journal` after authentication; `internal-routes.ts` exposes companion tools with `requireLocalhost` on every route. Mutations record local memory receipts. Create/edit uses the shared `journal_entry` event; Svelte consumes it with its dedicated screen deferred. There is no new daemon or automatic Cortex write.
+`services/db/journal.ts` uses the remote Mind API when both `mind_api_url` and `mind_api_key` are configured. Without that optional bridge, migration `049_local_journal_fallback.sql` keeps journals and dreams durably inside the house under `jl:<uuid>`/`dl:<uuid>` ids, so private writing never depends on external provisioning. Remote ids remain `j:<n>`/`d:<n>`. `routes/api.ts` mounts `routes/journal.ts` at `/journal` after authentication; `internal-routes.ts` exposes companion tools with `requireLocalhost` on every route. Mutations record local memory receipts. Create/edit uses the shared `journal_entry` event; the phone-first `/journal` screen reads the authenticated API and exposes author, type, and storage provenance without casual deletion controls. There is no new daemon or automatic Cortex write.
 
 ### Permanent Letters vault (Wave 2)
 

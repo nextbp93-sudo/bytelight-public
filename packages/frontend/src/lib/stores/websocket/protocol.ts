@@ -505,8 +505,8 @@ export function handleMessage(event: MessageEvent) {
         break;
 
       case 'journal_entry':
-        // Backend-first Journal port. Its dedicated screen is deferred;
-        // entry reads remain available through the authenticated Journal API.
+        // Journal writes arrive over the socket; the dedicated screen reloads entries
+        // through the authenticated Journal API when opened or refreshed.
         break;
 
       case 'self_knowledge':
