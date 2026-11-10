@@ -3,6 +3,7 @@ import type { McpServerInfo, Message } from '@bytelight/shared';
 import { resolveEffortForModel, normalizeModelRef, type ModelRef } from '@bytelight/shared';
 import { createMessage, updateThreadSession, clearAllThreadSessions, getThread, updateThreadActivity, createSessionRecord, endSessionRecord, recordUsageEvent, getProviderSession, setProviderSession, clearProviderSessionsForThread, hasAnyProviderSessionForThread, getMostRecentProviderSession, getMessages, getConfig as getDbConfig, setConfig as setDbConfig } from './db.js';
 import { buildBridgeBlock, decideBridge, shouldRecycleCodexSession } from './agent-bridge.js';
+import { buildAceContinuityContext } from './ace-continuity.js';
 import { isTurnAudience, type TurnAudience } from './turn-audience.js';
 // Slice 3b seam: runtime doors + provider-key mapping + canonical-consumer helpers.
 import { resolveRuntimeForRef, getClaudeCliLaneRuntime, getCodexCliLaneRuntime } from './runtimes/index.js';
@@ -1434,8 +1435,14 @@ export class AgentService {
       // Prepended to prompt because SessionStart hooks don't fire in V1 query()
       // Static content (CHAT TOOLS, skills, vault path) only on first message of session
       const baseOrientation = await buildOrientationContext(hookContext, isFirstMessage, content, resolvedModelRef.canonical);
+      const aceOrientation = !guestTurn && isFirstMessage
+        ? await buildAceContinuityContext().catch((error) => {
+            console.warn('[ACE] Shared continuity unavailable; continuing without it:', error instanceof Error ? error.message : error);
+            return '';
+          })
+        : '';
       // Port f1e3727a/8beeee4e: all our lanes retain their session on reroll.
-      const orientation = baseOrientation + (platformOpts?.withdrawn
+      const orientation = baseOrientation + aceOrientation + (platformOpts?.withdrawn
         ? `\n[Screen change: ${platformOpts.withdrawn}]\n` : '');
       const bridgeBlock = bridgePrior ? buildBridgeBlock(bridgePrior) : '';
       if (bridgePrior && bridgePrior.length > 0) {
