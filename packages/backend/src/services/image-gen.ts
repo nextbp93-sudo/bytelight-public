@@ -108,11 +108,18 @@ export function getImageGenSettings(): ImageGenSettings {
 }
 
 function codexBin(): string {
-  // Do not pin Studio to the binary nested inside a particular npm package
-  // version. `codex update` installs the current standalone CLI in ~/.local/bin.
-  // PM2's deliberately minimal PATH does not include that directory, so resolve
-  // the standalone install directly rather than relying on command lookup.
-  return getConfig('image_gen.codex_bin') || process.env.CODEX_BIN || join(homedir(), '.local', 'bin', 'codex');
+  const configured = getConfig('image_gen.codex_bin') || process.env.CODEX_BIN;
+  if (configured) return configured;
+
+  // Codex may be installed per-user by `codex update` or system-wide by npm.
+  // Services often have a deliberately minimal PATH, so prefer known absolute
+  // locations, but fall back to PATH for less common installations.
+  const candidates = [
+    join(homedir(), '.local', 'bin', 'codex'),
+    '/usr/local/bin/codex',
+    '/usr/bin/codex',
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) || 'codex';
 }
 
 function codexHome(): string {
