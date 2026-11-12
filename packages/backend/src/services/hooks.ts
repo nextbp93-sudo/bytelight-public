@@ -35,6 +35,7 @@ import { basename, join, resolve } from 'path';
 // Re-export ConnectionRegistry type from types
 import type { ConnectionRegistry } from '../types.js';
 import { guestToolRefusal, type TurnAudience } from './turn-audience.js';
+import { gameHandoffContext, LAST_GAME_HANDOFF_KEY } from './game-handoff.js';
 
 // ---------------------------------------------------------------------------
 // HookContext — built per query, passed to factory
@@ -798,6 +799,12 @@ export async function buildOrientationParts(ctx: HookContext, includeStatic = tr
   if (runtimeLabel) {
     parts.push({ label: 'Runtime', content: `Runtime: you're currently running on ${runtimeLabel}` });
   }
+
+  // A game room keeps its full transcript separate so coordinates do not flood
+  // Home. Carry only the recent result across the doorway, with its provenance,
+  // so the companion who played does not return unaware of the shared event.
+  const gameHandoff = gameHandoffContext(getConfig(LAST_GAME_HANDOFF_KEY), ctx.threadId);
+  if (gameHandoff) parts.push({ label: 'Game room handoff', content: gameHandoff });
 
   // Last session handoff
   try {

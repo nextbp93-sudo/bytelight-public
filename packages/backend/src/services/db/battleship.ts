@@ -10,6 +10,7 @@ import { createMessage, getMessages } from './messages.js';
 // slug ('companion-a', 'companion-b', 'companion-c'), so Aerie's `.slug` reads `.id` here.
 import { listCompanions } from './rooms.js';
 import { ownerDisplayName } from './owner-name.js';
+import { LAST_GAME_HANDOFF_KEY, type GameRoomHandoff } from '../game-handoff.js';
 
 export const BATTLESHIP_SIZE = 8;
 
@@ -548,6 +549,33 @@ function shotCopy(shot: BattleshipShot): BattleshipShot {
   return { ...shot };
 }
 
+function recordBattleshipHandoff(
+  game: BattleshipGame,
+  winner: 'owner' | 'companions',
+  finalShot: BattleshipShot,
+  completedAt: string,
+  companionName?: string,
+): void {
+  const jaclyn = ownerDisplayName(true);
+  const winnerText = winner === 'owner'
+    ? `${jaclyn} won Battleship against the companions.`
+    : `${companionName || 'The companions'} won Battleship against ${jaclyn}.`;
+  const shooter = winner === 'owner' ? jaclyn : (companionName || 'The companions');
+  const finalText = finalShot.ship
+    ? `${shooter}'s final shot at ${finalShot.coordinate} sank the ${finalShot.ship}.`
+    : `${shooter}'s final shot was ${finalShot.coordinate}.`;
+  const handoff: GameRoomHandoff = {
+    game: 'battleship',
+    gameId: game.id,
+    room: 'The Fleet Room',
+    sourceThreadId: game.threadId,
+    summary: `${winnerText} ${finalText} Final shot count: ${game.playerShots.length + (winner === 'owner' ? 1 : 0)} by ${jaclyn}; ${game.companionShots.length + (winner === 'companions' ? 1 : 0)} by the companions.`,
+    completedAt,
+  };
+  getDb().prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)')
+    .run(LAST_GAME_HANDOFF_KEY, JSON.stringify(handoff));
+}
+
 export function fireAtCompanionFleet(id: string, coordinate: string): BattleshipView {
   const game = activeGame(id);
   if (game.status !== 'playing') throw new BattleshipError('No battle is in progress', 409);
@@ -571,7 +599,10 @@ export function fireAtCompanionFleet(id: string, coordinate: string): Battleship
   );
   const detail = shot.result === 'sunk' ? ` — ${shot.ship} to the seafloor lounge` : '';
   addLog(game.id, 'shot', OWNER_SIDE, `${shot.coordinate}: ${shot.result}${detail}`, shot.coordinate, shot.result);
-  if (allSunk) addLog(game.id, 'system', 'house', `The companions’ fleet is gone. ${ownerDisplayName(true)} owns the water.`);
+  if (allSunk) {
+    addLog(game.id, 'system', 'house', `The companions’ fleet is gone. ${ownerDisplayName(true)} owns the water.`);
+    recordBattleshipHandoff(game, 'owner', shot, now);
+  }
   return publicView(gameById(game.id));
 }
 
@@ -638,7 +669,11 @@ export function fireAtPlayerFleet(
   );
   const detail = shot.result === 'sunk' ? ` — ${shot.ship} is down` : '';
   addLog(game.id, 'shot', cleanActor, `${shot.coordinate}: ${shot.result}${detail}`, shot.coordinate, shot.result);
-  if (allSunk) addLog(game.id, 'system', 'house', 'The last orange hull slips beneath the water. The companions take the match.');
+  if (allSunk) {
+    addLog(game.id, 'system', 'house', 'The last orange hull slips beneath the water. The companions take the match.');
+    const companion = listCompanions().find((candidate) => candidate.id === cleanActor);
+    recordBattleshipHandoff(game, 'companions', shot, now, companion?.display_name || cleanActor);
+  }
   return {
     gameId: game.id,
     coordinate: shot.coordinate,
