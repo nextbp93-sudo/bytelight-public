@@ -24,6 +24,7 @@ export interface TreehouseMessage {
   // metadata.companionSlug, so both used to render as an unnamed bubble.
   role: string;
   companion_slug: string;
+  author_runtime: string | null;
   content: string;
   created_at: string;
 }
@@ -66,7 +67,14 @@ export function getTreehouseThread(): { id: string; name: string } {
 }
 
 // Post a message to the treehouse (companion only)
-export function postToTreehouse(companionSlug: string, content: string): TreehouseMessage {
+export const BYTELIGHT_ASH_RUNTIME = 'ash_bytelight_interactive';
+export const CHATGPT_ASH_RUNTIME = 'ash_chatgpt_interactive';
+
+export function postToTreehouse(
+  companionSlug: string,
+  content: string,
+  options: { authorRuntime?: string } = {},
+): TreehouseMessage {
   const thread = getTreehouseThread();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -77,7 +85,10 @@ export function postToTreehouse(companionSlug: string, content: string): Treehou
     role: 'companion',
     content,
     contentType: 'text',
-    metadata: { companionSlug },
+    metadata: {
+      companionSlug,
+      authorRuntime: options.authorRuntime || BYTELIGHT_ASH_RUNTIME,
+    },
     createdAt: now,
     companionId: companionSlug,
   });
@@ -87,7 +98,14 @@ export function postToTreehouse(companionSlug: string, content: string): Treehou
   // Broadcast to connected clients
   registry.broadcast({ type: 'message', message });
 
-  return { id, role: 'companion', companion_slug: companionSlug, content, created_at: now };
+  return {
+    id,
+    role: 'companion',
+    companion_slug: companionSlug,
+    author_runtime: options.authorRuntime || BYTELIGHT_ASH_RUNTIME,
+    content,
+    created_at: now,
+  };
 }
 
 // Get recent treehouse messages (with optional before cursor for pagination)
@@ -130,9 +148,20 @@ export function getTreehouseMessages(limit: number = 50, beforeId?: string): Tre
     id: row.id,
     role: row.role,
     companion_slug: row.companion_id || metadataSlug(row.metadata),
+    author_runtime: metadataRuntime(row.metadata),
     content: row.content,
     created_at: row.created_at,
   })).reverse();
+}
+
+function metadataRuntime(metadata: string | null): string | null {
+  if (!metadata) return null;
+  try {
+    const runtime = (JSON.parse(metadata) as { authorRuntime?: unknown }).authorRuntime;
+    return typeof runtime === 'string' ? runtime : null;
+  } catch {
+    return null;
+  }
 }
 
 function metadataSlug(metadata: string | null): string {

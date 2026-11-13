@@ -169,6 +169,12 @@ export const SECRETS: SecretDef[] = [
     hint: 'Base URL for the Mind Bridge proxy',
   },
   {
+    name: 'ash_bridge_mcp_token',
+    label: 'Ash Bridge MCP bearer token',
+    category: 'other',
+    hint: 'Private bearer token for GPT Ash\'s narrow Treehouse MCP bridge',
+  },
+  {
     name: 'vapid_public_key',
     label: 'VAPID public key (web push)',
     category: 'other',

@@ -23,6 +23,7 @@ interface TreehouseMessage {
   id: string;
   role: string;
   companion_slug: string;
+  author_runtime: string | null;
   content: string;
   created_at: string;
 }
@@ -104,6 +105,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
     emoji: string;
     createdAt: string;
     content: string;
+    runtimeLabel?: string;
   }) => (
     <div key={card.key} className={cn('flex gap-3 mb-3 rounded-2xl border p-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
       <div
@@ -124,6 +126,11 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
           <span className={cn('text-[10px]', colors.textMuted)}>
             {formatTime(card.createdAt)}
           </span>
+          {card.runtimeLabel && (
+            <span className={cn('rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-wide', colors.panelBorder, colors.textMuted)}>
+              {card.runtimeLabel}
+            </span>
+          )}
         </div>
         <p className={cn('text-sm', colors.textMain)}>
           {splitWhispers(card.content).map((run, i) => (
@@ -376,6 +383,12 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                   });
                 }
 
+                const runtimeLabel = msg.author_runtime === 'ash_chatgpt_interactive'
+                  ? 'GPT'
+                  : msg.author_runtime === 'ash_bytelight_interactive'
+                    ? 'Bytelight'
+                    : undefined;
+
                 // Replies that address the room carry per-voice headers.
                 // Run the same splitter the Messages view uses so each voice
                 // gets its own card and face rather than all three piling
@@ -385,6 +398,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                     direction: 'outbound',
                     companionSlug: msg.companion_slug || undefined,
                     content: msg.content,
+                    runtimeLabel,
                   } as any,
                   companions,
                 );
@@ -413,6 +427,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                     emoji: v?.emoji || '💬',
                     createdAt: msg.created_at,
                     content: section.content,
+                    runtimeLabel,
                   });
                 });
               })}
