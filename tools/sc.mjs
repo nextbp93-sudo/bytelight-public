@@ -437,8 +437,38 @@ switch (cmd) {
       const body = { action: 'extract' };
       if (args[1]) body.threadId = args[1];
       await post('memory', body);
+    } else if (sub === 'proposals') {
+      await get(`memory-proposals?status=${encodeURIComponent(args[1] || 'pending')}`);
+    } else if (sub === 'resolve') {
+      if (!args[1] || !['filed', 'dropped'].includes(args[2])) {
+        console.log('Usage: sc memory resolve <proposalId> <filed|dropped> --as <companion-slug>');
+        break;
+      }
+      await post(`memory-proposals/${encodeURIComponent(args[1])}/resolve`, {
+        status: args[2], by: flagValue(args, '--as') || 'companion',
+      });
     } else {
-      console.log('Usage: sc memory view [scope] | append <scope> <label> <content> | replace <scope> <label> <old> <new> | rethink <scope> <label> <content> | extract [threadId]');
+      console.log('Usage: sc memory view [scope] | append <scope> <label> <content> | replace <scope> <label> <old> <new> | rethink <scope> <label> <content> | extract [threadId] | proposals [status] | resolve <id> <filed|dropped> --as <slug>');
+    }
+    break;
+  }
+
+  case 'notes': {
+    const sub = args[0];
+    if (sub === 'list') {
+      await get('notes');
+    } else if (sub === 'leave') {
+      if (!args[1]) { console.log('Usage: sc notes leave "text" --as <companion-slug> [--color <hex-or-token>]'); break; }
+      await post('note', {
+        text: args[1], sender: flagValue(args, '--as') || 'companion',
+        color: flagValue(args, '--color'),
+      });
+    } else if (sub === 'remove') {
+      if (!args[1]) { console.log('Usage: sc notes remove <noteId>'); break; }
+      const res = await fetch(`${BASE}/note/${encodeURIComponent(args[1])}`, { method: 'DELETE' });
+      console.log(JSON.stringify(await res.json(), null, 2));
+    } else {
+      console.log('Usage: sc notes list | leave "text" --as <slug> [--color <hex-or-token>] | remove <noteId>');
     }
     break;
   }

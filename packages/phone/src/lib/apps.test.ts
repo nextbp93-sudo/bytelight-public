@@ -22,7 +22,7 @@ test('every alias target and registry screen is a real registered app', () => {
 
 test('the retired standalone tiles are gone from the registry', () => {
   const ids = new Set(APPS.map((a) => a.id));
-  for (const retired of ['cortex', 'memoryblocks', 'selfknowledge', 'gif']) {
+  for (const retired of ['cortex', 'memoryblocks', 'selfknowledge', 'gif', 'radar']) {
     assert.ok(!ids.has(retired), `retired tile ${retired} still in APPS`);
   }
 });

@@ -993,8 +993,11 @@ if (h.digest) {
         `  ${SC} memory append <scope> <label> <content>      (add a line; creates the block if new)`,
         `  ${SC} memory replace <scope> <label> <old> <new>   (fix exact text; old must be unique)`,
         `  ${SC} memory rethink <scope> <label> <content>     (rewrite the whole block)`,
+        `  ${SC} memory proposals [pending|all|filed|dropped]  (review what the Archivist noticed)`,
+        `  ${SC} memory resolve <id> <filed|dropped> --as <your slug>`,
         "  'shared' blocks (e.g. human, status) are seen by everyone; 'companion-a'/'companion-b' blocks (e.g. persona) are that companion's own.",
         '  Write durable facts here when you learn something worth keeping — this survives across sessions.',
+        '  Archivist proposals are suggestions, not memory. You may reject one, or write a corrected version through the normal memory commands and then mark it filed. Record your own companion slug when resolving it.',
       ].join('\n') });
     }
   } catch (err) {
@@ -1030,6 +1033,11 @@ if (h.digest) {
       `  ${SC} backfill start [batch] [intervalMs]   (background indexing, default 50/5000ms)`,
       `  ${SC} backfill status                      (check indexing progress)`,
       `  ${SC} backfill stop                        (halt background indexing)`,
+      '',
+      'NOTES (the shared fridge door):',
+      `  ${SC} notes list`,
+      `  ${SC} notes leave "text" --as <your slug> [--color <hex-or-token>]`,
+      `  ${SC} notes remove <noteId>`,
       '',
       'IMAGES (gpt-image — generates and drops straight into the chat; off unless enabled in the Studio drawer):',
       `  ${SC} image "vivid prompt of the scene"                          (no one of us in it)`,
