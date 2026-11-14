@@ -19,9 +19,9 @@ interface MemoryFile {
   content: string;
 }
 
-// Identity & memory file editors — CLAUDE.md (loaded by both the agent lane
-// and the warm heartbeat session) and the warm lane's persistent memory
-// files. Formerly the useful half of the X-Ray app.
+// Identity & memory file editors — the configured identity document (for
+// example AGENTS.md on Codex or CLAUDE.md on Claude) and the warm lane's
+// persistent memory files. Formerly the useful half of the X-Ray app.
 export function IdentityApp({ onClose, themeConfig, themeMode, embedded }: IdentityAppProps) {
   const colors = themeConfig[themeMode];
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export function IdentityApp({ onClose, themeConfig, themeMode, embedded }: Ident
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const [identity, setIdentity] = useState<{ content: string; path: string }>({ content: '', path: '' });
+  const [identity, setIdentity] = useState<{ content: string; path: string; name: string }>({ content: '', path: '', name: 'Identity' });
   const [memoryIndex, setMemoryIndex] = useState<string | null>(null);
   const [memoryFiles, setMemoryFiles] = useState<MemoryFile[]>([]);
   // Identity drew every memory file it had, with nothing holding it back.
@@ -53,7 +53,7 @@ export function IdentityApp({ onClose, themeConfig, themeMode, embedded }: Ident
       if (!memRes.ok) throw new Error(`memory: ${memRes.status}`);
       const id = await idRes.json();
       const mem = await memRes.json();
-      setIdentity({ content: id.content || '', path: id.path || '' });
+      setIdentity({ content: id.content || '', path: id.path || '', name: id.name || 'Identity' });
       setMemoryIndex(mem.index ?? null);
       setMemoryFiles(mem.files || []);
       setMemoryDir(mem.memoryDir || '');
@@ -163,14 +163,14 @@ export function IdentityApp({ onClose, themeConfig, themeMode, embedded }: Ident
         <div className={cn(card, 'text-xs py-6 text-center')} style={{ color: colors.accent, opacity: 0.8 }}>{error}</div>
       ) : (
         <>
-          {/* CLAUDE.md */}
+          {/* Configured identity document */}
           <div className={cn(card, 'mb-3')}>
             <button
               onClick={() => setIdentityOpen((o) => !o)}
               className="flex w-full items-center justify-between"
             >
               <div className="min-w-0 text-left">
-                <div className={cn('text-sm font-medium', colors.textMain)}>CLAUDE.md</div>
+                <div className={cn('text-sm font-medium', colors.textMain)}>{identity.name}</div>
                 <div className={cn('text-[10px] font-mono truncate', colors.textMuted)}>{identity.path}</div>
               </div>
               <ChevronRight size={14} className={cn('shrink-0', colors.textMuted, identityOpen && 'rotate-90')} />

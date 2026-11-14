@@ -172,9 +172,11 @@ function ensureInit() {
   const config = getBytelightConfig();
   AGENT_CWD = config.agent.cwd;
 
-  // Load CLAUDE.md
+  // Load the configured identity document. Historical installs call this
+  // claude_md_path; Codex homes may deliberately point it at AGENTS.md.
   const candidates = [
     config.agent.claude_md_path,
+    join(AGENT_CWD, 'AGENTS.md'),
     join(AGENT_CWD, '.claude/CLAUDE.md'),
     join(AGENT_CWD, 'CLAUDE.md'),
   ];
@@ -184,7 +186,7 @@ function ensureInit() {
     seen.add(candidate);
     if (existsSync(candidate)) {
       claudeMdContent = readFileSync(candidate, 'utf-8');
-      console.log(`Loaded CLAUDE.md from: ${candidate} (${claudeMdContent.length} chars)`);
+      console.log(`Loaded identity document from: ${candidate} (${claudeMdContent.length} chars)`);
       break;
     }
   }

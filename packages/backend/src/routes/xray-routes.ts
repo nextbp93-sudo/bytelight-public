@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
-import { join, resolve } from 'path';
+import { basename, join, resolve } from 'path';
 import { listTriggers, getMostRecentActiveThread, listThreads } from '../services/db.js';
 import { buildOrientationParts, getNativeClaudeMemoryDir, type HookContext } from '../services/hooks.js';
 import { registry } from '../services/registry.js';
@@ -10,19 +10,22 @@ import { getBytelightConfig } from '../config.js';
 // X-RAY PANEL — See behind the scenes
 // ============================================
 
-export function createXrayRoutes(): Router {
+export function createXrayRoutes(options: { identityPath?: string } = {}): Router {
   const router = Router();
+  // Identity is runtime state, not source code. Respect the configured path so
+  // it may live outside a replaceable package directory and use a runtime-
+  // appropriate name such as AGENTS.md or CLAUDE.md.
+  const identityPath = options.identityPath ?? getBytelightConfig().agent.claude_md_path;
 
-  // X-Ray: Identity (CLAUDE.md)
+  // X-Ray: configured identity document
   router.get('/xray/identity', async (_req, res) => {
     try {
-      const claudeMdPath = resolve(process.cwd(), 'CLAUDE.md');
-      if (!existsSync(claudeMdPath)) {
-        res.json({ content: null, error: 'CLAUDE.md not found' });
+      if (!existsSync(identityPath)) {
+        res.json({ content: null, path: identityPath, name: basename(identityPath), error: `${basename(identityPath)} not found` });
         return;
       }
-      const content = readFileSync(claudeMdPath, 'utf-8');
-      res.json({ content, path: claudeMdPath });
+      const content = readFileSync(identityPath, 'utf-8');
+      res.json({ content, path: identityPath, name: basename(identityPath) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -34,15 +37,14 @@ export function createXrayRoutes(): Router {
         res.status(400).json({ error: 'content required' });
         return;
       }
-      const claudeMdPath = resolve(process.cwd(), 'CLAUDE.md');
       // Backup before writing
-      if (existsSync(claudeMdPath)) {
-        const backup = readFileSync(claudeMdPath, 'utf-8');
-        const backupPath = claudeMdPath + '.backup';
+      if (existsSync(identityPath)) {
+        const backup = readFileSync(identityPath, 'utf-8');
+        const backupPath = identityPath + '.backup';
         writeFileSync(backupPath, backup, 'utf-8');
       }
-      writeFileSync(claudeMdPath, content, 'utf-8');
-      res.json({ success: true, path: claudeMdPath });
+      writeFileSync(identityPath, content, 'utf-8');
+      res.json({ success: true, path: identityPath, name: basename(identityPath) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

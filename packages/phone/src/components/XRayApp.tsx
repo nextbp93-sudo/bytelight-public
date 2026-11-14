@@ -115,6 +115,7 @@ export function XRayApp({ onClose, themeConfig, themeMode }: XRayAppProps) {
 
   const [identityContent, setIdentityContent] = useState('');
   const [identityPath, setIdentityPath] = useState('');
+  const [identityName, setIdentityName] = useState('Identity');
   const [identityEditing, setIdentityEditing] = useState(false);
   const [identityDraft, setIdentityDraft] = useState('');
 
@@ -211,6 +212,7 @@ export function XRayApp({ onClose, themeConfig, themeMode }: XRayAppProps) {
       ]);
       setIdentityContent(identity.content || '');
       setIdentityPath(identity.path || '');
+      setIdentityName(identity.name || 'Identity');
       setMemoryIndex(memory.index);
       setMemoryFiles(memory.files || []);
       setMemoryDir(memory.memoryDir || '');
@@ -294,7 +296,7 @@ export function XRayApp({ onClose, themeConfig, themeMode }: XRayAppProps) {
             {activeSection === 'identity' && (
               <section className="section">
                 <div className="section-header">
-                  <h3 className="section-title">CLAUDE.md</h3>
+                  <h3 className="section-title">{identityName}</h3>
                   <span className="section-path">{identityPath}</span>
                 </div>
                 {identityEditing ? (

@@ -65,6 +65,7 @@
   // Identity state
   let identityContent = $state<string>('');
   let identityPath = $state<string>('');
+  let identityName = $state<string>('Identity');
   let identityEditing = $state(false);
   let identityDraft = $state('');
 
@@ -245,6 +246,7 @@
 
       identityContent = identity.content || '';
       identityPath = identity.path || '';
+      identityName = identity.name || 'Identity';
 
       memoryIndex = memory.index;
       memoryFiles = memory.files || [];
@@ -423,7 +425,7 @@
     {#if activeSection === 'identity'}
       <section class="section">
         <div class="section-header">
-          <h3 class="section-title">CLAUDE.md</h3>
+          <h3 class="section-title">{identityName}</h3>
           <span class="section-path">{identityPath}</span>
         </div>
 
