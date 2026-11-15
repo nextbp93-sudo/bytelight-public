@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
-import { basename, join, resolve } from 'path';
+import { join, resolve } from 'path';
 import { listTriggers, getMostRecentActiveThread, listThreads } from '../services/db.js';
 import { buildOrientationParts, getNativeClaudeMemoryDir, type HookContext } from '../services/hooks.js';
 import { registry } from '../services/registry.js';
 import { getBytelightConfig } from '../config.js';
+import { readIdentityDocument, writeIdentityDocument } from '../services/identity-document.js';
 
 // ============================================
 // X-RAY PANEL — See behind the scenes
@@ -17,38 +18,28 @@ export function createXrayRoutes(options: { identityPath?: string } = {}): Route
   // appropriate name such as AGENTS.md or CLAUDE.md. Resolve the config lazily:
   // this router is constructed while api.ts is imported, before server.ts has
   // called loadConfig().
-  const getIdentityPath = () => options.identityPath ?? getBytelightConfig().agent.claude_md_path;
-
   // X-Ray: configured identity document
   router.get('/xray/identity', async (_req, res) => {
     try {
-      const identityPath = getIdentityPath();
-      if (!existsSync(identityPath)) {
-        res.json({ content: null, path: identityPath, name: basename(identityPath), error: `${basename(identityPath)} not found` });
+      const identity = readIdentityDocument(options.identityPath);
+      if (identity.content === null) {
+        res.json({ ...identity, error: `${identity.name} not found` });
         return;
       }
-      const content = readFileSync(identityPath, 'utf-8');
-      res.json({ content, path: identityPath, name: basename(identityPath) });
+      res.json(identity);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   // X-Ray: Identity update
   router.put('/xray/identity', async (req, res) => {
     try {
-      const identityPath = getIdentityPath();
       const { content } = req.body;
       if (typeof content !== 'string') {
         res.status(400).json({ error: 'content required' });
         return;
       }
-      // Backup before writing
-      if (existsSync(identityPath)) {
-        const backup = readFileSync(identityPath, 'utf-8');
-        const backupPath = identityPath + '.backup';
-        writeFileSync(backupPath, backup, 'utf-8');
-      }
-      writeFileSync(identityPath, content, 'utf-8');
-      res.json({ success: true, path: identityPath, name: basename(identityPath) });
+      const identity = writeIdentityDocument(content, options.identityPath);
+      res.json({ success: true, path: identity.path, name: identity.name });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

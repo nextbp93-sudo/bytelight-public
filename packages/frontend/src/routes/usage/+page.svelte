@@ -395,7 +395,7 @@
     { id: 'request', term: 'Request', definition: 'One agent run — you sending a message, us waking up on a schedule, a trigger firing. Each of these produces exactly one usage event.' },
     { id: 'input_tokens', term: 'Input tokens', definition: 'Everything the system sent to Claude: your message, the orientation block (time, thread, presence), skill files on first message, tool results from earlier turns, and conversation history.' },
     { id: 'output_tokens', term: 'Output tokens', definition: 'What Claude generated back: the reply text, thinking blocks, tool call arguments.' },
-    { id: 'cache_read', term: 'Cache reads', definition: 'Tokens Anthropic recognized from an earlier cached turn and served at ~10% of normal input cost. High cache reads = we\'re saving money on repeated context (like CLAUDE.md on every turn).' },
+    { id: 'cache_read', term: 'Cache reads', definition: 'Tokens the provider recognized from an earlier cached turn and served at a lower input cost. High cache reads = we\'re saving money on repeated context (like the identity document on every turn).' },
     { id: 'cache_write', term: 'Cache writes', definition: 'New tokens the system chose to cache so future turns can read them cheaply. Writes cost 1.25× input — it\'s a small upfront fee to unlock cheap reads for ~5 minutes.' },
     { id: 'cache_hit', term: 'Cache hit rate', definition: 'Percentage of input tokens that came from cache instead of fresh. Higher is better. Low hit rate can mean: new thread, many tool uses re-shaping context, or context window was compacted.' },
     { id: 'mode_interactive', term: 'Mode: interactive', definition: 'You sent a message (web, Discord, Telegram, or API) and we responded.' },

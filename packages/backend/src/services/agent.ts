@@ -106,10 +106,12 @@ import { registerActiveStream, unregisterActiveStream } from './active-streams.j
 import { getMemoryMcpServer } from './memory-mcp.js';
 import { errMessage } from '../util/errors.js';
 import { extractThinkingSummary } from './thinking-summary.js';
+import { readIdentityDocument } from './identity-document.js';
 
 // Lazy-init: config isn't available at import time — defer until first use
 let _initialized = false;
-let claudeMdContent = '';
+let identityDocumentContent = '';
+let identityDocumentPath = '';
 let AGENT_CWD = '';
 const mcpServersFromConfig: Record<string, McpServerConfig> = {};
 
@@ -172,24 +174,7 @@ function ensureInit() {
   const config = getBytelightConfig();
   AGENT_CWD = config.agent.cwd;
 
-  // Load the configured identity document. Historical installs call this
-  // claude_md_path; Codex homes may deliberately point it at AGENTS.md.
-  const candidates = [
-    config.agent.claude_md_path,
-    join(AGENT_CWD, 'AGENTS.md'),
-    join(AGENT_CWD, '.claude/CLAUDE.md'),
-    join(AGENT_CWD, 'CLAUDE.md'),
-  ];
-  const seen = new Set<string>();
-  for (const candidate of candidates) {
-    if (seen.has(candidate)) continue;
-    seen.add(candidate);
-    if (existsSync(candidate)) {
-      claudeMdContent = readFileSync(candidate, 'utf-8');
-      console.log(`Loaded identity document from: ${candidate} (${claudeMdContent.length} chars)`);
-      break;
-    }
-  }
+  refreshIdentityDocument();
 
   // Load .mcp.json
   // Shared reader (services/mcp-json.ts) so the Codex lane sees the same table.
@@ -211,6 +196,22 @@ function ensureInit() {
   // memory-relevant turns; that gate keys on the server NAME, and 'byte-memory'
   // does not contain 'mind', so it is never dropped — it is always available.
   mcpServersFromConfig['byte-memory'] = getMemoryMcpServer();
+}
+
+/**
+ * Identity is editable while the service is running. Re-read it at turn time
+ * so a successful save becomes active on the very next reply, without a
+ * backend restart. The file is tiny; correctness is worth the small read.
+ */
+function refreshIdentityDocument(): string {
+  const identity = readIdentityDocument();
+  const nextContent = identity.content ?? '';
+  if (identity.path !== identityDocumentPath || nextContent !== identityDocumentContent) {
+    identityDocumentPath = identity.path;
+    identityDocumentContent = nextContent;
+    console.log(`Loaded identity document from: ${identity.path} (${nextContent.length} chars)`);
+  }
+  return identityDocumentContent;
 }
 
 // ---------------------------------------------------------------------------
@@ -1110,6 +1111,7 @@ export class AgentService {
     audience?: TurnAudience;
   }, _retryWithoutResume = false): Promise<string> {
     ensureInit();
+    const currentIdentity = refreshIdentityDocument();
     // Read once and handed to every engine below: the SDK lane's PreToolUse
     // hook, the router/Codex tool bridge (via the belt context), and the
     // warm CLI lanes (in the turn input). A malformed audience is dropped,
@@ -1293,8 +1295,8 @@ export class AgentService {
 
     const options: Options = {
       model,
-      systemPrompt: claudeMdContent
-        ? { type: 'preset', preset: 'claude_code', append: claudeMdContent }
+      systemPrompt: currentIdentity
+        ? { type: 'preset', preset: 'claude_code', append: currentIdentity }
         : { type: 'preset', preset: 'claude_code' },
       cwd: AGENT_CWD,
       permissionMode: 'bypassPermissions',
@@ -1647,11 +1649,11 @@ export class AgentService {
           isAutonomous,
           orientation: foreignRecallBlock ? orientation + '\n' + foreignRecallBlock : orientation,
           // A Codex lane is handed its identity (it walks no folders): the
-          // shared CLAUDE.md plus his lane note and bio. A Claude CLI lane
+          // shared identity document plus his lane note and bio. A Claude CLI lane
           // gets the same layering from its session folder instead.
           systemPromptText: laneCompanionId && runtimeDescriptor.runtimeId === 'codex-cli'
-            ? claudeMdContent + laneSectionFor(laneCompanionId)
-            : claudeMdContent,
+            ? currentIdentity + laneSectionFor(laneCompanionId)
+            : currentIdentity,
           messages: recent,
           cwd: AGENT_CWD,
           abortSignal: activeAbortController?.signal,

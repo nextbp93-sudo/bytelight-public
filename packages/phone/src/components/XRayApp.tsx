@@ -321,10 +321,10 @@ export function XRayApp({ onClose, themeConfig, themeMode }: XRayAppProps) {
             {activeSection === 'memory' && (
               <section className="section">
                 <div className="section-header">
-                  <h3 className="section-title">Native Claude Memory</h3>
+                  <h3 className="section-title">Native Agent Memory</h3>
                   <span className="section-path">{nativeMemoryDir}</span>
                 </div>
-                <p className="description">This is Claude's file-backed memory for this project. It lives outside the repository and is the memory Claude can update across native Claude sessions.</p>
+                <p className="description">This is the runtime's file-backed memory for this project. It lives outside the repository and can carry context across native agent sessions.</p>
                 {nativeMemoryIndex ? (
                   <div className="memory-index">
                     <h4>MEMORY.md Index</h4>

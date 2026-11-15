@@ -451,11 +451,11 @@
     {:else if activeSection === 'memory'}
       <section class="section">
         <div class="section-header">
-          <h3 class="section-title">Native Claude Memory</h3>
+          <h3 class="section-title">Native Agent Memory</h3>
           <span class="section-path">{nativeMemoryDir}</span>
         </div>
 
-        <p class="description">This is Claude’s file-backed memory for this project. It lives outside the repository and is the memory Claude can update across native Claude sessions.</p>
+        <p class="description">This is the runtime’s file-backed memory for this project. It lives outside the repository and can carry context across native agent sessions.</p>
 
         {#if nativeMemoryIndex}
           <div class="memory-index">
