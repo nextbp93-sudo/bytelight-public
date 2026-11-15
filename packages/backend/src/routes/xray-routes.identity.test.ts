@@ -6,6 +6,10 @@ import test from 'node:test';
 import express from 'express';
 import { createXrayRoutes } from './xray-routes.js';
 
+test('router construction does not require config to be loaded', () => {
+  assert.doesNotThrow(() => createXrayRoutes());
+});
+
 test('identity editor reads and writes the configured document, not process.cwd()', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'bytelight-identity-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));

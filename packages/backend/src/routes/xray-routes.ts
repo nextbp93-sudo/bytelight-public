@@ -14,12 +14,15 @@ export function createXrayRoutes(options: { identityPath?: string } = {}): Route
   const router = Router();
   // Identity is runtime state, not source code. Respect the configured path so
   // it may live outside a replaceable package directory and use a runtime-
-  // appropriate name such as AGENTS.md or CLAUDE.md.
-  const identityPath = options.identityPath ?? getBytelightConfig().agent.claude_md_path;
+  // appropriate name such as AGENTS.md or CLAUDE.md. Resolve the config lazily:
+  // this router is constructed while api.ts is imported, before server.ts has
+  // called loadConfig().
+  const getIdentityPath = () => options.identityPath ?? getBytelightConfig().agent.claude_md_path;
 
   // X-Ray: configured identity document
   router.get('/xray/identity', async (_req, res) => {
     try {
+      const identityPath = getIdentityPath();
       if (!existsSync(identityPath)) {
         res.json({ content: null, path: identityPath, name: basename(identityPath), error: `${basename(identityPath)} not found` });
         return;
@@ -32,6 +35,7 @@ export function createXrayRoutes(options: { identityPath?: string } = {}): Route
   // X-Ray: Identity update
   router.put('/xray/identity', async (req, res) => {
     try {
+      const identityPath = getIdentityPath();
       const { content } = req.body;
       if (typeof content !== 'string') {
         res.status(400).json({ error: 'content required' });
