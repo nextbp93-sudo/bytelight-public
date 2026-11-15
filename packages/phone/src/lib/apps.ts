@@ -10,6 +10,9 @@ export interface AppDef {
   id: string;
   name: string;
   icon: LucideIcon;
+  // Painterly room artwork used by the drawer, dock, and lock-screen doors.
+  // The Lucide icon remains the compact fallback for dense settings lists.
+  artIcon?: string;
   category: 'Companion' | 'Tools' | 'System' | 'Fun';
   // 'screen' apps swap the OS into a full-screen view; 'modal' apps open an overlay.
   kind: 'screen' | 'modal';
@@ -18,7 +21,7 @@ export interface AppDef {
   dock?: boolean;
 }
 
-export const APPS: AppDef[] = [
+const APP_DEFS: AppDef[] = [
   { id: 'messages', name: 'Messages', icon: MessageSquare, category: 'Companion', kind: 'screen', screen: 'messages', dock: true },
   { id: 'status', name: 'Status', icon: Activity, category: 'System', kind: 'screen', screen: 'status' },
   { id: 'integrations', name: 'Integrations', icon: Plug, category: 'System', kind: 'screen', screen: 'integrations' },
@@ -46,6 +49,11 @@ export const APPS: AppDef[] = [
   { id: 'notes', name: 'Notes', icon: StickyNote, category: 'Tools', kind: 'screen', screen: 'notes', dock: true },
   { id: 'games', name: 'Games', icon: Gamepad2, category: 'Fun', kind: 'screen', screen: 'games' },
 ];
+
+export const APPS: AppDef[] = APP_DEFS.map((app) => ({
+  ...app,
+  artIcon: `/room-icons/${app.id}.png`,
+}));
 
 export const DOCK_APPS = APPS.filter((a) => a.dock);
 

@@ -33,3 +33,9 @@ test('X-Ray stays its own Apps-drawer tile and keeps its saved place', () => {
   assert.ok(!xray.dock, 'X-Ray is not on the home-screen dock');
   assert.deepEqual(migrateAppIds(['messages', 'xray', 'agent']), ['messages', 'xray', 'agent'], 'a saved xray slot is not rewritten');
 });
+
+test('every launchable room has its painterly artwork path', () => {
+  for (const app of APPS) {
+    assert.equal(app.artIcon, `/room-icons/${app.id}.png`, `${app.id} artwork path drifted`);
+  }
+});

@@ -273,7 +273,11 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
           className="absolute z-20 flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/15 bg-black/40"
           style={{ bottom: 'calc(var(--sab, 0px) + 36px)', [i === 0 ? 'left' : 'right']: 28 }}
         >
-          <app.icon size={22} strokeWidth={1.6} className="text-white" />
+          {app.artIcon ? (
+            <img src={app.artIcon} alt="" aria-hidden="true" draggable={false} className="h-10 w-10 object-contain pointer-events-none select-none" />
+          ) : (
+            <app.icon size={22} strokeWidth={1.6} className="text-white" />
+          )}
         </button>
       ))}
 

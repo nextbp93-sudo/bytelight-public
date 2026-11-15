@@ -235,7 +235,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                   <div
                     className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl"
                   >
-                    <app.icon className="h-5 w-5" />
+                    {app.artIcon ? (
+                      <img src={app.artIcon} alt="" aria-hidden="true" draggable={false} className="h-11 w-11 object-contain pointer-events-none select-none" />
+                    ) : (
+                      <app.icon className="h-5 w-5" />
+                    )}
                   </div>
                   <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
                 </div>
@@ -285,7 +289,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                 <div
                   className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl"
                 >
-                  <app.icon className="h-5 w-5" />
+                  {app.artIcon ? (
+                    <img src={app.artIcon} alt="" aria-hidden="true" draggable={false} className="h-11 w-11 object-contain pointer-events-none select-none" />
+                  ) : (
+                    <app.icon className="h-5 w-5" />
+                  )}
                 </div>
                 <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
               </div>
@@ -310,7 +318,11 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
           <div
             className="bytelight-app-tile flex h-12 w-12 items-center justify-center rounded-2xl shadow-md"
           >
-            <draggingApp.icon className="h-5 w-5" />
+            {draggingApp.artIcon ? (
+              <img src={draggingApp.artIcon} alt="" aria-hidden="true" draggable={false} className="h-11 w-11 object-contain pointer-events-none select-none" />
+            ) : (
+              <draggingApp.icon className="h-5 w-5" />
+            )}
           </div>
           <span className={cn('bytelight-app-name text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{draggingApp.name}</span>
         </div>

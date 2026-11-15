@@ -201,7 +201,11 @@ export function HomeScreen({
                 className="bytelight-dock-tile flex h-10 w-10 items-center justify-center rounded-xl"
                 data-pressed={pressedAppId === app.id}
               >
-                <app.icon className="h-5 w-5" />
+                {app.artIcon ? (
+                  <img src={app.artIcon} alt="" aria-hidden="true" draggable={false} className="h-9 w-9 object-contain pointer-events-none select-none" />
+                ) : (
+                  <app.icon className="h-5 w-5" />
+                )}
               </div>
               {app.id === 'messages' && messagesBadge > 0 && (
                 <span
