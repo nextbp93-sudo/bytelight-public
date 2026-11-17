@@ -280,7 +280,7 @@ test('spontaneous: a settings change re-rolls, persists the day, restores on boo
     assert.equal(o.getSpontaneousConfig().pendingToday, 0, 'stop clears every pending timer');
 
     // A restart restores the same day instead of re-rolling it.
-    Math.random = () => 0; // would roll zero if it re-rolled
+    Math.random = () => 0; // would roll one if it re-rolled
     const again = boot([]);
     assert.equal(again.getSpontaneousConfig().pendingToday, 3);
     assert.equal(getConfig('spontaneous.rolled_times'), JSON.stringify(times));
@@ -303,6 +303,37 @@ test('spontaneous: a settings change re-rolls, persists the day, restores on boo
   } finally {
     Math.random = realRandom;
   }
+});
+
+test('spontaneous: enabled days roll at least one wake unless maxPerDay is explicitly zero', () => {
+  const realRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const o = boot([]);
+    o.setSpontaneousConfig({ enabled: true, maxPerDay: 3, windowStart: 0, windowEnd: 48 });
+    assert.equal(o.getSpontaneousConfig().pendingToday, 1);
+    o.setSpontaneousConfig({ maxPerDay: 0 });
+    assert.equal(o.getSpontaneousConfig().pendingToday, 0);
+    o.stop();
+  } finally {
+    Math.random = realRandom;
+    setConfig('spontaneous.enabled', 'false');
+  }
+});
+
+test('spontaneous: a restart recovers a promised wake missed during downtime', () => {
+  setConfig('spontaneous.enabled', 'true');
+  setConfig('spontaneous.rolled_for', '2026-10-18');
+  setConfig('spontaneous.rolled_times', JSON.stringify([Date.parse('2026-10-18T12:00:00Z')]));
+  withClock('2026-10-18T12:30:00Z', () => {
+    const o = boot([]);
+    assert.equal(o.getSpontaneousConfig().pendingToday, 1);
+    const recovered = JSON.parse(getConfig('spontaneous.rolled_times') || '[]') as number[];
+    assert.equal(recovered.length, 1);
+    assert.equal(recovered[0], Date.parse('2026-10-18T12:35:00Z'));
+    o.stop();
+  });
+  setConfig('spontaneous.enabled', 'false');
 });
 
 // The spontaneous day runs 03:00 to 03:00 local, so a window that ends at

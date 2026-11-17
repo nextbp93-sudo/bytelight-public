@@ -45,7 +45,7 @@ utimesSync(SCRAP, (Date.now() - days(3)) / 1000, (Date.now() - days(3)) / 1000);
 
 const gifModule = await import('./gif.js');
 const gifRouter = gifModule.default;
-const { buildFitLadder, drawTextArgs, paletteUseChain } = gifModule;
+const { buildFitLadder, drawTextArgs, listFontFamilies, paletteUseChain } = gifModule;
 
 function toolsReady(): boolean {
   try {
@@ -114,6 +114,13 @@ describe('session sweep', () => {
 
   it('removes orphaned multer upload scraps', () => {
     assert.equal(existsSync(SCRAP), false);
+  });
+});
+
+describe('font discovery', () => {
+  it('falls back cleanly when fontconfig is not installed', async () => {
+    const fonts = await listFontFamilies('bytelight-test-missing-fc-list');
+    assert.deepEqual(fonts, ['DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif']);
   });
 });
 

@@ -1117,8 +1117,9 @@ export class Orchestrator {
   // --- Spontaneous ("dice") wakes ---
   //
   // Scheduled wakes are expectation; these are the opposite. Each day the
-  // scheduler rolls 0..max fire times at random inside the window — nobody,
-  // including the companions, knows when (or whether) one lands until it does.
+  // scheduler rolls 1..max fire times at random inside the window — once the
+  // owner turns selfies on, a whole day of accidental silence is not a useful
+  // surprise. Setting maxPerDay to 0 remains the explicit way to pause them.
 
   getSpontaneousConfig(): { enabled: boolean; maxPerDay: number; windowStart: number; windowEnd: number; pendingToday: number } {
     return {
@@ -1174,9 +1175,17 @@ export class Orchestrator {
       : nowMin >= startMin || nowMin < endMin; // wraps midnight
   }
 
-  private armSpontaneousTimer(delayMs: number): void {
+  private armSpontaneousTimer(delayMs: number, scheduledAt: number): void {
     const timer = setTimeout(() => {
       this.spontaneousTimers = this.spontaneousTimers.filter(t => t !== timer);
+      // Persist only promises still waiting. That lets a later restart tell a
+      // wake already delivered from one the process genuinely slept through.
+      try {
+        const stored = JSON.parse(getConfig('spontaneous.rolled_times') || '[]') as unknown[];
+        setConfig('spontaneous.rolled_times', JSON.stringify(stored.filter((at) => at !== scheduledAt)));
+      } catch {
+        setConfig('spontaneous.rolled_times', '[]');
+      }
       if (this.isWithinDnd()) { olog('SPONTANEOUS: skipped, inside the do-not-disturb window'); return; }
       this.handleWake('spontaneous');
     }, delayMs);
@@ -1209,9 +1218,18 @@ export class Orchestrator {
     if (!force && getConfig('spontaneous.rolled_for') === today) {
       let stored: number[] = [];
       try { stored = JSON.parse(getConfig('spontaneous.rolled_times') || '[]'); } catch { stored = []; }
-      const future = stored.filter((at) => typeof at === 'number' && at > Date.now());
-      for (const at of future) this.armSpontaneousTimer(at - Date.now());
-      olog(`SPONTANEOUS: ${future.length} wake(s) still standing from today's roll`);
+      const nowMs = now.getTime();
+      const valid = stored.filter((at) => typeof at === 'number' && Number.isFinite(at));
+      const future = valid.filter((at) => at > nowMs);
+      const missed = valid.filter((at) => at <= nowMs);
+      // A process restart used to erase any selfie whose timer elapsed while
+      // the service was down. Re-home those promises a few minutes after boot,
+      // staggered so several missed wakes never stampede the lane at once.
+      const recovered = missed.map((_, index) => nowMs + (5 + index * 5) * 60_000);
+      const waiting = [...future, ...recovered];
+      setConfig('spontaneous.rolled_times', JSON.stringify(waiting));
+      for (const at of waiting) this.armSpontaneousTimer(at - nowMs, at);
+      olog(`SPONTANEOUS: ${waiting.length} wake(s) still standing from today's roll${recovered.length ? ` (${recovered.length} recovered after downtime)` : ''}`);
       return;
     }
     const maxPerDay = Math.max(0, getConfigNumber('spontaneous.max_per_day', 2));
@@ -1219,7 +1237,7 @@ export class Orchestrator {
     const windowStart = getConfigNumber('spontaneous.window_start', 10);
     const windowEnd = getConfigNumber('spontaneous.window_end', 26);
 
-    const count = Math.floor(Math.random() * (maxPerDay + 1)); // 0..max inclusive
+    const count = maxPerDay === 0 ? 0 : 1 + Math.floor(Math.random() * maxPerDay); // 1..max inclusive
     if (count === 0) {
       setConfig('spontaneous.rolled_for', today);
       setConfig('spontaneous.rolled_times', '[]');
@@ -1249,8 +1267,9 @@ export class Orchestrator {
     for (let i = 0; i < count; i++) {
       const targetMin = startMin + Math.floor(Math.random() * (endMin - startMin));
       const delayMs = (targetMin - nowMin) * 60_000 + Math.floor(Math.random() * 60_000);
-      firesAt.push(Date.now() + delayMs);
-      this.armSpontaneousTimer(delayMs);
+      const fireAt = Date.now() + delayMs;
+      firesAt.push(fireAt);
+      this.armSpontaneousTimer(delayMs, fireAt);
     }
     // Persisted so a restart restores the day instead of re-rolling it. Stored,
     // never logged — the dice stay secret.

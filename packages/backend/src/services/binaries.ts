@@ -10,6 +10,7 @@ import { spawnSync } from 'child_process';
 export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 export const GIFSICLE = process.env.GIFSICLE_PATH || 'gifsicle';
 export const FC_LIST = process.env.FC_LIST_PATH || 'fc-list';
+export const FC_MATCH = process.env.FC_MATCH_PATH || 'fc-match';
 
 /** True when the binary can actually be spawned (probed with --help/-version). */
 export function binaryAvailable(binary: string): boolean {

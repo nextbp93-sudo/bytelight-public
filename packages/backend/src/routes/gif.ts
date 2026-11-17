@@ -11,6 +11,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { getBytelightConfig, PROJECT_ROOT } from '../config.js';
 import { copyToGallery } from '../services/image-gen.js';
+import { FC_LIST, FC_MATCH } from '../services/binaries.js';
 
 const router = Router();
 // PORT ADAPTATION: npm workspaces run this backend below the repo root, so anchor shared data/tools to PROJECT_ROOT.
@@ -1627,17 +1628,43 @@ router.post('/gif/speed/:sessionId/:filename', async (req, res) => {
   }
 });
 
-/**
- * List available fonts
- * GET /api/gif/fonts
- */
-router.get('/gif/fonts', async (_req, res) => {
-  try {
-    const proc = spawn('fc-list', [':', 'family']);
-    let output = '';
-    proc.stdout.on('data', d => output += d.toString());
-    await new Promise<void>((resolve) => proc.on('close', resolve));
+const FALLBACK_FONTS = ['DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif'];
 
+/**
+ * Read stdout from a small system lookup without ever letting a missing binary's
+ * EventEmitter `error` escape to the process-level uncaughtException handler.
+ */
+function childOutput(command: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let output = '';
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve(output);
+    };
+
+    let proc: ReturnType<typeof spawn>;
+    try {
+      proc = spawn(command, args);
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+    proc.stdout?.on('data', d => { output += d.toString(); });
+    proc.once('error', error => finish(error));
+    proc.once('close', code => {
+      if (code === 0) finish();
+      else finish(new Error(`${command} exited with code ${code ?? 'unknown'}`));
+    });
+  });
+}
+
+/** Return the installed font families, or a safe built-in list when fontconfig is absent. */
+export async function listFontFamilies(command: string = FC_LIST): Promise<string[]> {
+  try {
+    const output = await childOutput(command, [':', 'family']);
     // fc-list prints every alias a face answers to on one comma-separated line
     // ("Bebas Neue,Bebas Neue Bold"). Only the first is a family drawtext can
     // match, so listing the raw line offers names that render nothing.
@@ -1647,14 +1674,19 @@ router.get('/gif/fonts', async (_req, res) => {
       if (family) fontSet.add(family);
     });
     const fonts = Array.from(fontSet).sort((a, b) => a.localeCompare(b));
-
-    res.json({ fonts: fonts.length ? fonts : FALLBACK_FONTS });
+    return fonts.length ? fonts : FALLBACK_FONTS;
   } catch {
-    res.json({ fonts: FALLBACK_FONTS });
+    return FALLBACK_FONTS;
   }
-});
+}
 
-const FALLBACK_FONTS = ['DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif'];
+/**
+ * List available fonts
+ * GET /api/gif/fonts
+ */
+router.get('/gif/fonts', async (_req, res) => {
+  res.json({ fonts: await listFontFamilies() });
+});
 
 /**
  * Serve one installed font file so the picker can draw each name in its own
@@ -1671,10 +1703,7 @@ router.get('/gif/font-file/:family', async (req, res) => {
   }
 
   try {
-    const proc = spawn('fc-match', ['-f', '%{family}\t%{file}', `${family}:style=Regular`]);
-    let out = '';
-    proc.stdout.on('data', d => out += d.toString());
-    await new Promise<void>((resolve) => proc.on('close', resolve));
+    const out = await childOutput(FC_MATCH, ['-f', '%{family}\t%{file}', `${family}:style=Regular`]);
 
     const [matchedFamilies, file] = out.split('\t');
     // fc-match always answers with something, so an unknown name comes back as
