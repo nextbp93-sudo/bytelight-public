@@ -142,10 +142,25 @@ export function HomeScreen({
           This stays deliberately quiet so personal wallpaper can still be the
           hero later; with no wallpaper, the ambient layer gives it a sky. */}
       <div className="bytelight-home-signature" aria-hidden="true">
-        <div className="bytelight-home-sigil">
-          <span className="bytelight-home-sigil-orbit bytelight-home-sigil-orbit--one" />
-          <span className="bytelight-home-sigil-orbit bytelight-home-sigil-orbit--two" />
-          <span className="bytelight-home-sigil-core" />
+        <div className="bytelight-home-sigil bytelight-home-star">
+          <span className="bytelight-home-star-halo" />
+          <svg className="bytelight-home-star-glyph" viewBox="0 0 100 100" focusable="false">
+            <defs>
+              <radialGradient id="mythic-house-star-gold" cx="50%" cy="43%" r="62%">
+                <stop offset="0%" stopColor="#fff9d5" />
+                <stop offset="30%" stopColor="#f7dc83" />
+                <stop offset="68%" stopColor="#d7a63c" />
+                <stop offset="100%" stopColor="#8e5618" />
+              </radialGradient>
+            </defs>
+            <polygon
+              className="bytelight-home-star-shape"
+              points="50,3 55.4,37.1 83.2,16.8 62.9,44.6 97,50 62.9,55.4 83.2,83.2 55.4,62.9 50,97 44.6,62.9 16.8,83.2 37.1,55.4 3,50 37.1,44.6 16.8,16.8 44.6,37.1"
+            />
+            <circle className="bytelight-home-star-core" cx="50" cy="50" r="7" />
+          </svg>
+          <span className="bytelight-home-star-spark bytelight-home-star-spark--one" />
+          <span className="bytelight-home-star-spark bytelight-home-star-spark--two" />
         </div>
         <p className="bytelight-home-kicker">Our second place</p>
         <h1 className="bytelight-home-wordmark">Mythic House</h1>
