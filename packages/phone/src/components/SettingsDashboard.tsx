@@ -43,6 +43,17 @@ import { apiFetch } from "../bytelight";
 import { subscribeWebPush, unsubscribeWebPush, sendTestPush, webPushSupported } from "../bytelight/push";
 import { WallpaperMedia } from './WallpaperMedia';
 
+const SYSTEM_FONT_OPTIONS = [
+  { id: 'font-sans', label: 'Sans', family: "'Geist', sans-serif" },
+  { id: 'font-serif', label: 'Serif', family: "'Fraunces', Georgia, serif" },
+  { id: 'font-mono', label: 'Mono', family: "'JetBrains Mono', monospace" },
+  { id: 'font-rochie', label: 'Rochie', family: "'Rochie', Georgia, serif" },
+  { id: 'font-magic-retro', label: 'Magic Retro', family: "'Magic Retro', Georgia, serif" },
+  { id: 'font-genty', label: 'Genty', family: "'Genty', cursive" },
+  { id: 'font-magnolia', label: 'Magnolia', family: "'Magnolia Sparkling', cursive" },
+  { id: 'font-capuche', label: 'Capuche', family: "'Capuche', Georgia, serif" },
+] as const;
+
 // Determine if a hex color is near-white (needs black foreground for contrast)
 // Only returns true for very light colors like mono's #FAFAFA — most accent colors get white text
 function isNearWhite(hex: string): boolean {
@@ -1208,68 +1219,36 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     <h3 className={cn("micro-label mb-4", colors.accentText)}>
                       System Font
                     </h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <button
-                        onClick={() =>
-                          onSettingsChange({ fontFamily: "font-sans" })
-                        }
-                        className={cn(
-                          "flex items-center justify-center p-4 rounded-[24px] border transition-all duration-500 font-sans",
-                          appSettings.fontFamily === "font-sans" ||
-                            !appSettings.fontFamily
-                            ? "bytelight-on-accent border-transparent scale-105"
-                            : `${colors.panelBg} ${colors.panelBorder} ${colors.textMuted} hover:opacity-80`,
-                        )}
-                        style={
-                          appSettings.fontFamily === "font-sans" || !appSettings.fontFamily
-                            ? { background: colors.accent, color: 'var(--bytelight-on-accent)' }
-                            : undefined
-                        }
-                      >
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                          Sans
-                        </span>
-                      </button>
-                      <button
-                        onClick={() =>
-                          onSettingsChange({ fontFamily: "font-serif" })
-                        }
-                        className={cn(
-                          "flex items-center justify-center p-4 rounded-[24px] border transition-all duration-500 font-serif",
-                          appSettings.fontFamily === "font-serif"
-                            ? "bytelight-on-accent border-transparent scale-105"
-                            : `${colors.panelBg} ${colors.panelBorder} ${colors.textMuted} hover:opacity-80`,
-                        )}
-                        style={
-                          appSettings.fontFamily === "font-serif"
-                            ? { background: colors.accent, color: 'var(--bytelight-on-accent)' }
-                            : undefined
-                        }
-                      >
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                          Serif
-                        </span>
-                      </button>
-                      <button
-                        onClick={() =>
-                          onSettingsChange({ fontFamily: "font-mono" })
-                        }
-                        className={cn(
-                          "flex items-center justify-center p-4 rounded-[24px] border transition-all duration-500 font-mono",
-                          appSettings.fontFamily === "font-mono"
-                            ? "bytelight-on-accent border-transparent scale-105"
-                            : `${colors.panelBg} ${colors.panelBorder} ${colors.textMuted} hover:opacity-80`,
-                        )}
-                        style={
-                          appSettings.fontFamily === "font-mono"
-                            ? { background: colors.accent, color: 'var(--bytelight-on-accent)' }
-                            : undefined
-                        }
-                      >
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                          Mono
-                        </span>
-                      </button>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {SYSTEM_FONT_OPTIONS.map((option) => {
+                        const selected = (appSettings.fontFamily || 'font-sans') === option.id;
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => onSettingsChange({ fontFamily: option.id })}
+                            className={cn(
+                              "flex min-h-[76px] flex-col items-center justify-center gap-1 rounded-[24px] border px-2 py-3 transition-all duration-500",
+                              selected
+                                ? "bytelight-on-accent border-transparent scale-[1.03]"
+                                : `${colors.panelBg} ${colors.panelBorder} ${colors.textMuted} hover:opacity-80`,
+                            )}
+                            style={{
+                              fontFamily: option.family,
+                              ...(selected
+                                ? { background: colors.accent, color: 'var(--bytelight-on-accent)' }
+                                : {}),
+                            }}
+                          >
+                            <span className="text-[1.35rem] leading-none">Aa</span>
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-[0.12em]"
+                              style={{ fontFamily: "'Geist', sans-serif" }}
+                            >
+                              {option.label}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

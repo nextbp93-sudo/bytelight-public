@@ -40,6 +40,51 @@
   font-display: swap;
 }
 
+/* Jaclyn's licensed house fonts. */
+@font-face {
+  font-family: 'Rochie';
+  src: url('/fonts/Rochie.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Magic Retro';
+  src: url('/fonts/MagicRetro.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Genty';
+  src: url('/fonts/Genty-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Magnolia Sparkling';
+  src: url('/fonts/MagnoliaSparkling.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Capuche';
+  src: url('/fonts/Capuche.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Stored on appSettings.fontFamily and applied at the phone root. Explicit
+   code/mono surfaces retain their own font utility for legibility. */
+.font-rochie { font-family: 'Rochie', Georgia, serif; }
+.font-magic-retro { font-family: 'Magic Retro', Georgia, serif; }
+.font-genty { font-family: 'Genty', 'Great Vibes', cursive; }
+.font-magnolia { font-family: 'Magnolia Sparkling', 'Great Vibes', cursive; }
+.font-capuche { font-family: 'Capuche', 'Fraunces', Georgia, serif; }
+
 /* Self-hosted JetBrains Mono */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -376,8 +421,8 @@ select optgroup {
 
 .bytelight-home-wordmark {
   margin: 0;
-  font-family: 'Great Vibes', 'Snell Roundhand', 'Segoe Script', cursive;
-  font-size: clamp(2.5rem, 11.5vw, 4.15rem);
+  font-family: 'Magnolia Sparkling', 'Great Vibes', 'Snell Roundhand', cursive;
+  font-size: clamp(3.4rem, 15.5vw, 5.5rem);
   font-style: normal;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -601,7 +646,7 @@ select optgroup {
   .bytelight-home-signature { top: 5.4rem; }
   .bytelight-home-sigil { width: 3.7rem; height: 3.7rem; margin-bottom: 0.55rem; }
   .bytelight-home-star-glyph { width: 3.4rem; height: 3.4rem; }
-  .bytelight-home-wordmark { font-size: 2.35rem; }
+  .bytelight-home-wordmark { font-size: 2.8rem; }
   .bytelight-home-subtitle { margin-top: 0.45rem; }
 }
 
