@@ -31,6 +31,15 @@
   font-display: swap;
 }
 
+/* Self-hosted Great Vibes (SIL OFL 1.1) for the home wordmark. */
+@font-face {
+  font-family: 'Great Vibes';
+  src: url('/fonts/GreatVibes-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Self-hosted JetBrains Mono */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -335,12 +344,17 @@ select optgroup {
 
 .bytelight-home-wordmark {
   margin: 0;
-  font-family: var(--font-heading, var(--font-body, 'Geist', sans-serif));
-  font-size: clamp(2rem, 10vw, 3.25rem);
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 0.94;
+  font-family: 'Great Vibes', 'Snell Roundhand', 'Segoe Script', cursive;
+  font-size: clamp(2.5rem, 11.5vw, 4.15rem);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.9;
+  text-wrap: balance;
+  text-shadow:
+    0 1px 0 color-mix(in srgb, var(--bytelight-text) 46%, transparent),
+    0 3px 18px rgba(0, 0, 0, 0.9),
+    0 0 24px color-mix(in srgb, var(--bytelight-accent) 26%, transparent);
 }
 
 .bytelight-home-subtitle {
@@ -555,7 +569,7 @@ select optgroup {
   .bytelight-home-signature { top: 5.4rem; }
   .bytelight-home-sigil { width: 3.7rem; height: 3.7rem; margin-bottom: 0.55rem; }
   .bytelight-home-sigil-orbit { width: 3.35rem; height: 1.4rem; }
-  .bytelight-home-wordmark { font-size: 2rem; }
+  .bytelight-home-wordmark { font-size: 2.35rem; }
   .bytelight-home-subtitle { margin-top: 0.45rem; }
 }
 

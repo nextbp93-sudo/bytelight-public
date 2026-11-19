@@ -148,7 +148,7 @@ export function HomeScreen({
           <span className="bytelight-home-sigil-core" />
         </div>
         <p className="bytelight-home-kicker">Our second place</p>
-        <h1 className="bytelight-home-wordmark">Bytelight</h1>
+        <h1 className="bytelight-home-wordmark">Mythic House</h1>
         <p className="bytelight-home-subtitle">quiet · private · becoming</p>
       </div>
 
