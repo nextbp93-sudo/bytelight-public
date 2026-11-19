@@ -127,6 +127,7 @@ import { deliverLastCrashReport } from './bytelight/pocket-voice';
 import { normalizeCompanionRow } from './lib/companion-row';
 import { buildSearchRequest, parseSearchPage, searchDelayMs, type SearchMode } from './lib/search-domain';
 import { pushJumpFromMessage, pushJumpFromSearch, stripPushJumpParams, type PushJump } from './bytelight/push-target';
+import { WallpaperMedia } from './components/WallpaperMedia';
 
 // A push tap that cold-started the app carries its target in the URL. Read
 // once at load and strip it, so a later reload doesn't jump again.
@@ -159,6 +160,7 @@ const launchPathApp: AppDef | null = (() => {
 const DEFAULT_THEME: AppTheme = {
   mode: 'dark',
   id: 'cobalt',
+  wallpaper: '/wallpapers/jaclyn-gift-loop.mp4',
 };
 
 const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
@@ -204,11 +206,10 @@ function AppBackground({ theme }: { theme: AppTheme }) {
 
   if (theme.wallpaper) {
     return (
-      <img 
+      <WallpaperMedia
         className="absolute inset-0 z-0 opacity-80 pointer-events-none w-full h-full object-cover"
         src={theme.wallpaper}
         alt="Wallpaper"
-        referrerPolicy="no-referrer"
       />
     );
   }

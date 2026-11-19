@@ -41,6 +41,7 @@ import { SEND_ICONS, DEFAULT_SEND_ICON_ID } from "../lib/sendIcons";
 import { Toggle } from "./Toggle";
 import { apiFetch } from "../bytelight";
 import { subscribeWebPush, unsubscribeWebPush, sendTestPush, webPushSupported } from "../bytelight/push";
+import { WallpaperMedia } from './WallpaperMedia';
 
 // Determine if a hex color is near-white (needs black foreground for contrast)
 // Only returns true for very light colors like mono's #FAFAFA — most accent colors get white text
@@ -1373,7 +1374,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         </label>
                         {theme.wallpaper ? (
                           <>
-                            <img
+                            <WallpaperMedia
                               src={theme.wallpaper}
                               className="w-full h-full object-cover opacity-60"
                               alt="Wallpaper"
@@ -1530,7 +1531,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         </label>
                         {theme.lockScreenWallpaper ? (
                           <>
-                            <img
+                            <WallpaperMedia
                               src={theme.lockScreenWallpaper}
                               className="w-full h-full object-cover opacity-60"
                               alt="Lock Screen Wallpaper"

@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Cloud, CloudMoon, CloudSun, Moon, Sun, CloudRain, Snowflake, X } from 'lucide-react';
 import { clampClockAt, clockParts, type ClockAt, type LockFace, type LockPiece, type LockPosition, type LockSize } from '../lib/lock-clock';
 import { haptic } from '../lib/utils';
+import { WallpaperMedia } from './WallpaperMedia';
 
 export interface LockWeather {
   temp: number;
@@ -376,7 +377,7 @@ export function LockPreview({
         style={{ width: PREVIEW_W, height: PREVIEW_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
       >
         {wallpaper ? (
-          <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{ backgroundImage: `url(${wallpaper})` }} />
+          <WallpaperMedia src={wallpaper} className="absolute inset-0 h-full w-full object-cover object-center opacity-60" alt="Lock preview wallpaper" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-80" />
         )}

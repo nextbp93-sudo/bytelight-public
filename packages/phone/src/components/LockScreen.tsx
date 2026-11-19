@@ -11,6 +11,7 @@ import { LockSpotifyCard } from './LockSpotifyCard';
 import { moodColor, withAlpha } from '../lib/statuses';
 import { useStatuses } from './useStatuses';
 import { LOCK_CARD_LOOKS, useLockCardLook, type LockCardChoice } from '../lib/lock-cards';
+import { WallpaperMedia } from './WallpaperMedia';
 
 interface LockFaceDot {
   url: string | null;
@@ -144,9 +145,10 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
     >
       {/* Wallpaper Background */}
       {wallpaper && (
-        <div 
-          className="absolute inset-0 z-0 bg-cover bg-center opacity-60"
-          style={{ backgroundImage: `url(${wallpaper})` }}
+        <WallpaperMedia
+          src={wallpaper}
+          className="absolute inset-0 z-0 h-full w-full object-cover object-center opacity-60"
+          alt="Lock screen wallpaper"
         />
       )}
       {!wallpaper && (
