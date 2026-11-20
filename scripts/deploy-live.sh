@@ -43,7 +43,10 @@ if ! cmp -s "$STAGING/package-lock.json" "$LIVE_ROOT/package-lock.json"; then
 fi
 
 echo "Installing isolated staging dependencies"
-(cd "$STAGING" && npm ci --onnxruntime-node-install-cuda=skip)
+# The service exports NODE_ENV=production into owner turns. A deployment still
+# needs the repo's build toolchain (SvelteKit, Vite, TypeScript), so opt back in
+# explicitly instead of inheriting npm's production-only omit policy.
+(cd "$STAGING" && npm ci --include=dev --onnxruntime-node-install-cuda=skip)
 (cd "$STAGING" && npm run build)
 
 # --delete applies only to the committed code surface. Excluded private/runtime
@@ -66,7 +69,7 @@ rsync -a --delete \
 
 if [[ "$LOCK_CHANGED" -eq 1 ]]; then
   echo "Installing updated live dependencies"
-  (cd "$LIVE_ROOT" && npm ci --onnxruntime-node-install-cuda=skip)
+  (cd "$LIVE_ROOT" && npm ci --include=dev --onnxruntime-node-install-cuda=skip)
 fi
 
 sudo -n /usr/bin/systemctl restart "$SERVICE"
