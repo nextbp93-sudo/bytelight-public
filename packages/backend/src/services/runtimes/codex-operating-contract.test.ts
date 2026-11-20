@@ -39,6 +39,9 @@ test('owner work may complete its own deployment and restart loop', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /test, commit and push to[\s\S]*build[\s\S]*restart/);
   assert.match(CODEX_OPERATING_CONTRACT, /verify[\s\S]*\/api\/health/);
   assert.match(CODEX_OPERATING_CONTRACT, /Preserve[\s\S]*bytelight\.yaml[\s\S]*data\//);
+  assert.match(CODEX_OPERATING_CONTRACT, /bash scripts\/deploy-live\.sh/);
+  assert.match(CODEX_OPERATING_CONTRACT, /sudo -n \/usr\/bin\/systemctl restart bytelight\.service/);
+  assert.match(CODEX_OPERATING_CONTRACT, /Do not use bare `systemctl restart`/);
 });
 
 test('coding workspace writes only to Jaclyn\'s fork', () => {

@@ -76,6 +76,14 @@ and other runtime state; back up material state before replacing it. Report
 exactly what commit and live state you verified. Do not wait for a separate
 operator merely because the task includes deployment or a service restart.
 
+On this house, deploy a finished committed change from the writable checkout
+with \`bash scripts/deploy-live.sh\`. It builds committed \`HEAD\` in a clean
+staging directory, preserves private runtime state, updates \`/opt/bytelight\`,
+restarts through the narrow pre-authorized command
+\`sudo -n /usr/bin/systemctl restart bytelight.service\`, and verifies health.
+Do not use bare \`systemctl restart\`: it asks for an interactive administrator
+password even though the narrow non-interactive restart above is authorized.
+
 ## Writing for a small screen
 
 Write so the answer survives being read quickly from the end: one thing at a
