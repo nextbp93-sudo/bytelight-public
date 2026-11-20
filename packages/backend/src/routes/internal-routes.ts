@@ -67,6 +67,7 @@ import { addFieldNote, listFieldNotes, fieldNotesLimit, FieldNoteError } from '.
 import { getStatusSnapshot, setCompanionStatus, StatusError } from '../services/db/statuses.js';
 import { cancelIntention, createIntention, IntentionError, listIntentions } from '../services/db/intentions.js';
 import { postToTreehouse, getTreehouseInfo, getTreehouseMessages, treehouseMembers } from '../services/treehouse.js';
+import { keepDrawerItem, listDrawerItems, removeDrawerItem, DrawerError } from '../services/db/drawer.js';
 
 // A self-knowledge entry is owned by a companion or by 'shared'. 'shared' is a
 // deliberate owner (a truth both companions hold) and is NOT a row in the companions
@@ -1346,6 +1347,30 @@ export function createInternalRoutes(): Router {
 
   router.get('/internal/field-notes', requireLocalhost, (req, res) => {
     res.json({ notes: listFieldNotes(fieldNotesLimit(req.query.limit)) });
+  });
+
+  // The Drawer — companions keep and remove their own curiosities. It is not
+  // a generic owner CRUD lane: authorship remains with the companion named.
+  router.get('/internal/drawer', requireLocalhost, (req, res) => {
+    const companion = typeof req.query.companion === 'string' ? req.query.companion.trim() : undefined;
+    res.json({ items: listDrawerItems(companion || undefined) });
+  });
+
+  router.post('/internal/drawer', requireLocalhost, (req, res) => {
+    try {
+      res.status(201).json({ item: keepDrawerItem(req.body ?? {}) });
+    } catch (error) {
+      if (error instanceof DrawerError) return res.status(400).json({ error: error.message });
+      throw error;
+    }
+  });
+
+  router.delete('/internal/drawer/:id', requireLocalhost, (req, res) => {
+    const companion = typeof req.query.companion === 'string' ? req.query.companion.trim() : '';
+    if (!companion) return res.status(400).json({ error: 'companion is required.' });
+    const removed = removeDrawerItem(String(req.params.id), companion);
+    if (!removed) return res.status(404).json({ error: 'That item is not in this companion’s drawer.' });
+    res.json({ ok: true });
   });
 
   // ── Statuses (agent-facing) ── a companion's line and mood on her Status

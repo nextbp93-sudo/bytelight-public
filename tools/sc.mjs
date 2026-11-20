@@ -473,6 +473,33 @@ switch (cmd) {
     break;
   }
 
+  case 'drawer': {
+    const sub = args[0];
+    if (sub === 'list') {
+      const companion = flagValue(args, '--as');
+      await get(`drawer${companion ? `?companion=${encodeURIComponent(companion)}` : ''}`);
+    } else if (sub === 'keep') {
+      if (!args[1] || !args[2]) {
+        console.log('Usage: sc drawer keep <pin|thread|scrap|keepsake> "title" --as <slug> --why "..." [--body "..."] [--url URL] [--image URL] [--collection "..."]');
+        break;
+      }
+      await post('drawer', {
+        kind: args[1], title: args[2], companion: flagValue(args, '--as') || 'companion-a',
+        whyKept: flagValue(args, '--why'), body: flagValue(args, '--body'),
+        url: flagValue(args, '--url'), imageUrl: flagValue(args, '--image'),
+        collection: flagValue(args, '--collection'),
+      });
+    } else if (sub === 'remove') {
+      if (!args[1]) { console.log('Usage: sc drawer remove <itemId> --as <slug>'); break; }
+      const companion = flagValue(args, '--as') || 'companion-a';
+      const res = await fetch(`${BASE}/drawer/${encodeURIComponent(args[1])}?companion=${encodeURIComponent(companion)}`, { method: 'DELETE' });
+      console.log(JSON.stringify(await res.json(), null, 2));
+    } else {
+      console.log('Usage: sc drawer list [--as <slug>] | keep ... | remove ...');
+    }
+    break;
+  }
+
   case 'library': {
     // Reading along with her. read never goes past her bookmark; notes hang
     // on exact words from a page she has reached. Chapters are 1-based.

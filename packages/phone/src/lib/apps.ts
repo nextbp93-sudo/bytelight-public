@@ -2,7 +2,7 @@
 // Consumed by the home-screen dock and the app drawer.
 
 import type { LucideIcon } from 'lucide-react';
-import { Library, MessageSquare, StickyNote, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, Brain, Paintbrush, Box, FolderOpen, BookOpen, Inbox, Mail, ScanSearch, CloudSun, Telescope, Music, Gamepad2, TreePine } from 'lucide-react';
+import { Library, MessageSquare, StickyNote, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, Brain, Paintbrush, Box, FolderOpen, BookOpen, Inbox, Mail, ScanSearch, CloudSun, Telescope, Music, Gamepad2, TreePine, Archive } from 'lucide-react';
 import { SPOTIFY_APP_ID } from './spotify';
 import type { OsScreen } from '../App';
 
@@ -35,6 +35,7 @@ const APP_DEFS: AppDef[] = [
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'library', name: 'Reading Nook', icon: Library, category: 'Companion', kind: 'screen', screen: 'library' },
   { id: 'fieldnotes', name: 'Field Notes', icon: Telescope, category: 'Companion', kind: 'screen', screen: 'fieldnotes' },
+  { id: 'drawer', name: 'The Drawer', icon: Archive, artIcon: '/room-icons/drawer.svg', category: 'Companion', kind: 'screen', screen: 'drawer' },
   // Spotify (ported from Aerie): the operator's listening, played through her Spotify MCP server.
   { id: SPOTIFY_APP_ID, name: 'Spotify', icon: Music, category: 'Tools', kind: 'screen', screen: 'spotify' },
   // The companions' read-only room (ported from Aerie).
@@ -52,7 +53,7 @@ const APP_DEFS: AppDef[] = [
 
 export const APPS: AppDef[] = APP_DEFS.map((app) => ({
   ...app,
-  artIcon: `/room-icons/${app.id}.png`,
+  artIcon: app.artIcon ?? `/room-icons/${app.id}.png`,
 }));
 
 export const DOCK_APPS = APPS.filter((a) => a.dock);

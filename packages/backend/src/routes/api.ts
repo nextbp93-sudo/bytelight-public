@@ -56,6 +56,7 @@ import mcpServersRouter from './mcp-servers.js';
 import secretsRouter from './secrets.js';
 import cardsRouter from './cards.js';
 import battleshipRouter from './battleship.js';
+import drawerRouter from './drawer.js';
 
 // ============================================================================
 // API Router Composition
@@ -241,6 +242,9 @@ router.use('/games/cards', cardsRouter);
 // server.ts mounted it at /api/games/battleship). After authMiddleware above;
 // the companions' sealed fire lane is /api/internal/games/battleship.
 router.use('/games/battleship', battleshipRouter);
+// The Drawer is arranged by companions through the localhost-only lane; the
+// authenticated phone receives the things they chose to share here.
+router.use(drawerRouter);
 
 // Unknown /api paths answer a JSON 404. Without this they fell through to the
 // Svelte SPA fallback (server.ts app.get('*')) and came back 200 + index.html,

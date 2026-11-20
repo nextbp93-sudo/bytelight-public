@@ -36,6 +36,7 @@ test('X-Ray stays its own Apps-drawer tile and keeps its saved place', () => {
 
 test('every launchable room has its painterly artwork path', () => {
   for (const app of APPS) {
-    assert.equal(app.artIcon, `/room-icons/${app.id}.png`, `${app.id} artwork path drifted`);
+    const expected = app.id === 'drawer' ? '/room-icons/drawer.svg' : `/room-icons/${app.id}.png`;
+    assert.equal(app.artIcon, expected, `${app.id} artwork path drifted`);
   }
 });

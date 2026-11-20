@@ -19,6 +19,7 @@ import { LibraryApp } from './components/LibraryApp';
 import { LettersApp } from './components/LettersApp';
 import { TreehouseApp } from './components/TreehouseApp';
 import { FieldNotesApp } from './components/FieldNotesApp';
+import { DrawerApp } from './components/DrawerApp';
 import { StudioApp } from './components/StudioApp';
 import { ThreadSwitcher } from './components/ThreadSwitcher';
 import { AppDrawer } from './components/AppDrawer';
@@ -244,6 +245,7 @@ export type OsScreen =
   | 'journal'
   | 'letters'
   | 'fieldnotes'
+  | 'drawer'
   | 'spotify'
   | 'treehouse'
   | 'studio'
@@ -2031,6 +2033,14 @@ export default function App() {
         {osState === 'fieldnotes' && (
           <FieldNotesApp
             key="fieldnotes"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'drawer' && (
+          <DrawerApp
+            key="drawer"
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
