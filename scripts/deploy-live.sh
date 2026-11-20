@@ -70,7 +70,7 @@ if [[ "$LOCK_CHANGED" -eq 1 ]]; then
 fi
 
 sudo -n /usr/bin/systemctl restart "$SERVICE"
-sudo -n /usr/bin/systemctl is-active --quiet "$SERVICE"
+sudo -n /usr/bin/systemctl is-active "$SERVICE" >/dev/null
 
 for attempt in {1..30}; do
   if curl -fsS "$HEALTH_URL" >/dev/null; then
