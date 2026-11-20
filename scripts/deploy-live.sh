@@ -40,12 +40,10 @@ git -C "$REPO_ROOT" archive HEAD | tar -x -C "$STAGING"
 LOCK_CHANGED=0
 if ! cmp -s "$STAGING/package-lock.json" "$LIVE_ROOT/package-lock.json"; then
   LOCK_CHANGED=1
-  echo "Dependency lock changed; installing clean staging dependencies"
-  (cd "$STAGING" && npm ci)
-else
-  ln -s "$LIVE_ROOT/node_modules" "$STAGING/node_modules"
 fi
 
+echo "Installing isolated staging dependencies"
+(cd "$STAGING" && npm ci)
 (cd "$STAGING" && npm run build)
 
 # --delete applies only to the committed code surface. Excluded private/runtime
