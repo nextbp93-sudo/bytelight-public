@@ -398,7 +398,6 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                     direction: 'outbound',
                     companionSlug: msg.companion_slug || undefined,
                     content: msg.content,
-                    runtimeLabel,
                   } as any,
                   companions,
                 );
@@ -414,6 +413,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                     emoji: companionEmojis[slug] || '💬',
                     createdAt: msg.created_at,
                     content: msg.content,
+                    runtimeLabel,
                   });
                 }
 

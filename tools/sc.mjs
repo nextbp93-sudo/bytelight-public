@@ -500,6 +500,23 @@ switch (cmd) {
     break;
   }
 
+  case 'treehouse': {
+    const sub = args[0];
+    if (sub === 'read') {
+      const raw = Number.parseInt(args[1] || '50', 10);
+      const limit = Number.isFinite(raw) ? Math.max(1, Math.min(100, raw)) : 50;
+      await get(`treehouse/messages?limit=${limit}`);
+    } else if (sub === 'post') {
+      if (!args[1]) { console.log('Usage: sc treehouse post "message" --as <companion-slug>'); break; }
+      await post('treehouse-post', {
+        content: args[1], companionSlug: flagValue(args, '--as') || 'companion-a',
+      });
+    } else {
+      console.log('Usage: sc treehouse read [limit] | post "message" --as <companion-slug>');
+    }
+    break;
+  }
+
   case 'library': {
     // Reading along with her. read never goes past her bookmark; notes hang
     // on exact words from a page she has reached. Chapters are 1-based.
