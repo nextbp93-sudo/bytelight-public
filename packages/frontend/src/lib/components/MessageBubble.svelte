@@ -44,6 +44,32 @@
   const contentType = $derived(message.content_type || 'text');
   const metadata = $derived(message.metadata as Record<string, unknown> | null);
 
+  type EngineMetadata = {
+    provider?: string;
+    runtime?: string;
+    model?: string;
+    modelRef?: string;
+    tier?: string;
+  };
+  const engine = $derived((metadata?.engine as EngineMetadata | undefined) ?? null);
+  const engineLabel = $derived.by(() => {
+    if (!engine) return null;
+    const model = engine.model ?? engine.modelRef?.split('/').pop() ?? '';
+    if (engine.provider === 'antigravity' || engine.runtime === 'antigravity-cli') {
+      const level = model.replace(/^gemini-4-neon-/, '');
+      return `Neon${level ? ` · ${level.toUpperCase()}` : ''}`;
+    }
+    if (engine.runtime === 'codex-cli' || engine.provider === 'codex-cli') {
+      return `Codex · ${model.replace(/^gpt-/, 'GPT ').replace(/-/g, ' ')}`;
+    }
+    if (engine.provider === 'openai-codex' || engine.runtime === 'codex') {
+      return `Codex · ${model.replace(/^gpt-/, 'GPT ').replace(/-/g, ' ')}`;
+    }
+    if (engine.provider === 'claude-cli') return `Claude CLI · ${model}`;
+    if (engine.provider === 'claude') return `Claude · ${model.replace(/^claude-/, '')}`;
+    return model || engine.runtime || engine.provider || null;
+  });
+
   // Discord community messages arrive role='system' with the sender info in
   // metadata — surface who sent them instead of an anonymous system bubble.
   // Ported from reference implementation. Our backend stores channel/guild IDs only (no
@@ -524,6 +550,9 @@
     <div class="message-header">
       <span class="role">{message.role === 'companion' ? 'Bytelight' : 'You'}</span>
       <span class="time">{formatTime(message.created_at)}</span>
+      {#if message.role === 'companion' && engineLabel}
+        <span class="engine-badge" title="This reply was written with {engine?.modelRef ?? engine?.model ?? engine?.runtime}">{engineLabel}</span>
+      {/if}
       {#if message.edited_at && !isDeleted}
         <span class="edited">(edited)</span>
       {/if}
@@ -992,6 +1021,23 @@
 <MessageActionModals {actions} />
 
 <style>
+  .engine-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 12rem;
+    padding: 0.12rem 0.42rem;
+    border: 1px solid color-mix(in srgb, var(--accent, #a78bfa) 38%, transparent);
+    border-radius: 999px;
+    color: var(--text-muted, #a8a3b3);
+    font-size: 0.64rem;
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .message-system {
     display: flex;
     justify-content: center;

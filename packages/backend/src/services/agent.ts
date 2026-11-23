@@ -1218,7 +1218,7 @@ export class AgentService {
     // with zero applicable rows the resolved model is byte-identical to
     // the pre-5a getConfiguredModel output (parity-pinned by
     // agent.model-resolution-parity.test.ts).
-    const { tierConfig, model, modelRef: modelRefForTurn } = resolveModelForTurn({
+    const { tierConfig, model, modelRef: modelRefForTurn, tier } = resolveModelForTurn({
       isAutonomous,
       threadId,
       ...(laneCompanionId ? { companionId: laneCompanionId } : {}),
@@ -2332,7 +2332,22 @@ export class AgentService {
         platform,
         // Which lane wrote this row, so a warm lane can tell its own words
         // from another lane's (heartbeat other-lane net).
-        metadata: { ...(messageMetadata ?? {}), lane: laneTagFor(runtimeDescriptor.runtimeId, laneCompanionId) },
+        metadata: {
+          ...(messageMetadata ?? {}),
+          lane: laneTagFor(runtimeDescriptor.runtimeId, laneCompanionId),
+          // Keep the engine that actually authored this reply attached to the
+          // message. The header picker describes the next interactive turn;
+          // autonomous tiers and older replies may have used a different
+          // engine, so the UI must not make the operator infer provenance
+          // from voice or timing.
+          engine: {
+            provider: runtimeDescriptor.modelRef.provider,
+            runtime: runtimeDescriptor.modelRef.runtime,
+            model: runtimeDescriptor.modelRef.model,
+            modelRef: runtimeDescriptor.modelRef.canonical,
+            tier,
+          },
+        },
         createdAt: new Date().toISOString(),
         companionId: turnCompanionId,
       });

@@ -216,7 +216,7 @@
     const prefix = compactProviderPrefix(effective.provider);
     const model = compactModelRef(effective.provider, effective.model);
     const effort = effective.thinkingEffort.toUpperCase();
-    return `${prefix}${model} ${effort}`.replace(/\s+/g, ' ').trim();
+    return `NOW · ${prefix}${model} ${effort}`.replace(/\s+/g, ' ').trim();
   });
 
   // Only a thread pick that belongs to THIS target can be cleared here; one
