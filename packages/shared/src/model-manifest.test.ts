@@ -155,7 +155,7 @@ describe('model-manifest — gpt-5-nano is never Codex-selectable', () => {
 
 describe('model-manifest — BYOK / Codex separation', () => {
   test('the GPT-6 shelf is exposed only through the subscription-backed Codex CLI lane', () => {
-    const expected = ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna'];
+    const expected = ['gpt-6.2-sol', 'gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna'];
     for (const id of expected) {
       const entries = MODELS.filter((m) => m.id === id);
       assert.equal(entries.length, 1, `${id} should have exactly one static manifest entry`);
