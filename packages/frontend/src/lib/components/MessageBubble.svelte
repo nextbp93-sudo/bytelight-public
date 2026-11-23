@@ -550,9 +550,6 @@
     <div class="message-header">
       <span class="role">{message.role === 'companion' ? 'Bytelight' : 'You'}</span>
       <span class="time">{formatTime(message.created_at)}</span>
-      {#if message.role === 'companion' && engineLabel}
-        <span class="engine-badge" title="This reply was written with {engine?.modelRef ?? engine?.model ?? engine?.runtime}">{engineLabel}</span>
-      {/if}
       {#if message.edited_at && !isDeleted}
         <span class="edited">(edited)</span>
       {/if}
@@ -918,6 +915,12 @@
       {/if}
     </div>
 
+    {#if message.role === 'companion' && engineLabel}
+      <div class="engine-origin" title="This reply was written with {engine?.modelRef ?? engine?.model ?? engine?.runtime}">
+        <span class="engine-badge">{engineLabel}</span>
+      </div>
+    {/if}
+
     {#if showTools && hasTools}
       <div class="tools-panel">
         {#each toolEvents as tool (tool.toolId)}
@@ -1036,6 +1039,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Keep provenance in the message's visible body rather than its legacy
+     header: house themes are allowed to relocate/hide timestamps, but this
+     line must remain legible on the phone. */
+  .engine-origin {
+    display: flex;
+    margin: 0.32rem 0 0 calc(2.6rem + 2px + 0.5rem);
+  }
+
+  @media (max-width: 768px) {
+    .engine-origin {
+      margin-left: calc(2.2rem + 2px + 0.5rem);
+    }
   }
 
   .message-system {

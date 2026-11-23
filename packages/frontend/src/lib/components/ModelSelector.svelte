@@ -30,7 +30,11 @@
   // through companion → brain at every scope), and a brain-wide thread pick
   // still beats any one companion's default.
   const COMPANION_ID = 'companion-a-b';
-  const MEMBERS = ['companion-a', 'companion-b'] as const;
+  // Only inhabited companion slots belong in the operator-facing picker.
+  // Companion B is an intentionally blank software placeholder; exposing its
+  // fallback model makes it look like a second person is present and creates
+  // a split label for a lane that must not consume turns.
+  const MEMBERS = ['companion-a'] as const;
   const TIER = 'interactive' as const;
 
   const memberName = (id: string) => getProfile(id).name || id.charAt(0).toUpperCase() + id.slice(1);
@@ -208,9 +212,9 @@
   // Display-only — reads `effective`, mutates nothing.
   let compactPillLabel = $derived.by(() => {
     if (split) {
-      return memberEffective
+      return `NOW · ${memberEffective
         .map((m) => `${memberName(m.id)} ${compactProviderPrefix(m.eff.provider)}${compactModelRef(m.eff.provider, m.eff.model)}`.replace(/\s+/g, ' ').trim())
-        .join(' | ');
+        .join(' | ')}`;
     }
     if (!effective) return 'Model…';
     const prefix = compactProviderPrefix(effective.provider);
@@ -786,7 +790,7 @@
       <div class="section">
         <div class="section-title">For</div>
         <div class="target-chips">
-          {#each [COMPANION_ID, ...MEMBERS] as id}
+          {#each (MEMBERS.length === 1 ? [COMPANION_ID] : [COMPANION_ID, ...MEMBERS]) as id}
             <button class="target-chip" class:active={target === id} onclick={() => (target = id)}>
               {id === COMPANION_ID ? brainName : memberName(id)}
             </button>
