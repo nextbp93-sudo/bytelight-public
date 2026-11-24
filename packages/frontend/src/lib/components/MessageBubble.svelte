@@ -56,8 +56,9 @@
     if (!engine) return null;
     const model = engine.model ?? engine.modelRef?.split('/').pop() ?? '';
     if (engine.provider === 'antigravity' || engine.runtime === 'antigravity-cli') {
-      const level = model.replace(/^gemini-4-neon-/, '');
-      return `Neon${level ? ` · ${level.toUpperCase()}` : ''}`;
+      const match = model.match(/^gemini-4-(neon|argon)-(.+)$/);
+      if (match) return `${match[1][0].toUpperCase()}${match[1].slice(1)} · ${match[2].toUpperCase()}`;
+      return model;
     }
     if (engine.runtime === 'codex-cli' || engine.provider === 'codex-cli') {
       return `Codex · ${model.replace(/^gpt-/, 'GPT ').replace(/-/g, ' ')}`;
