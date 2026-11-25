@@ -59,6 +59,26 @@ interface CodexUsage {
   limitReached: string | null;
 }
 
+interface AntigravityUsageBucket {
+  id: string;
+  name: string;
+  remainingPercent: number;
+  usedPercent: number;
+  windowMinutes: number | null;
+  resetsAt: string | null;
+}
+
+interface AntigravityUsageGroup {
+  name: string;
+  description: string | null;
+  buckets: AntigravityUsageBucket[];
+}
+
+interface AntigravityUsage {
+  groups: AntigravityUsageGroup[];
+  capturedAt: string;
+}
+
 interface SubscriptionUsageMetersProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
@@ -85,6 +105,12 @@ function windowLabel(minutes: number | null): string {
 function severityColor(severity: string, accent: string): string {
   if (severity === 'critical' || severity === 'exceeded' || severity === 'blocked') return '#ef4444';
   if (severity !== 'normal') return '#f59e0b';
+  return accent;
+}
+
+function remainingColor(remaining: number, accent: string): string {
+  if (remaining <= 10) return '#ef4444';
+  if (remaining <= 25) return '#f59e0b';
   return accent;
 }
 
@@ -115,6 +141,29 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
   const [claudeError, setClaudeError] = useState<string | null>(null);
   const [codex, setCodex] = useState<CodexUsage | null>(null);
   const [codexError, setCodexError] = useState<string | null>(null);
+  const [antigravity, setAntigravity] = useState<AntigravityUsage | null>(null);
+  const [antigravityError, setAntigravityError] = useState<string | null>(null);
+  const [antigravityLoading, setAntigravityLoading] = useState(false);
+
+  async function loadAntigravity(forceRefresh = false) {
+    setAntigravityLoading(true);
+    try {
+      const res = await apiFetch(`/api/usage/antigravity${forceRefresh ? '?refresh=1' : ''}`);
+      const data = await res.json().catch(() => null) as (Partial<AntigravityUsage> & { error?: unknown }) | null;
+      if (!res.ok) {
+        throw new Error(typeof data?.error === 'string' && data.error ? data.error : `load failed (${res.status})`);
+      }
+      if (!Array.isArray(data?.groups) || typeof data?.capturedAt !== 'string') {
+        throw new Error(WAITING_NOTE);
+      }
+      setAntigravity({ groups: data.groups, capturedAt: data.capturedAt });
+      setAntigravityError(null);
+    } catch (err) {
+      setAntigravityError(err instanceof Error ? err.message : 'Antigravity usage unavailable.');
+    } finally {
+      setAntigravityLoading(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -216,6 +265,7 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         if (!cancelled) setCodexError(err instanceof Error ? err.message : 'Codex usage unavailable.');
       }
     })();
+    void loadAntigravity();
     return () => { cancelled = true; };
   }, []);
 
@@ -223,6 +273,59 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
 
   return (
     <>
+      <div className={cn('rounded-2xl border p-3 mb-3', colors.panelBg, colors.panelBorder)}>
+        <div className="flex items-center justify-between mb-2">
+          <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em]', colors.textMuted)}>
+            Google Antigravity usage
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadAntigravity(true)}
+            disabled={antigravityLoading}
+            className={cn('rounded-lg border px-2 py-1 text-[10px] font-semibold disabled:opacity-50', colors.panelBorder, colors.textMuted)}
+          >
+            {antigravityLoading ? 'Checking…' : 'Refresh'}
+          </button>
+        </div>
+        {antigravity ? (
+          <>
+            <div className="space-y-3">
+              {antigravity.groups.map((group) => (
+                <div key={group.name}>
+                  <div className={cn('text-xs font-semibold mb-1.5', colors.textMain)}>{group.name}</div>
+                  <div className="space-y-2">
+                    {group.buckets.map((bucket) => {
+                      const color = remainingColor(bucket.remainingPercent, colors.accent);
+                      return (
+                        <div key={bucket.id || bucket.name}>
+                          <div className={cn('h-1.5 rounded-full overflow-hidden mb-1', barTrack)}>
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${Math.max(2, bucket.remainingPercent)}%`, backgroundColor: color }}
+                            />
+                          </div>
+                          <div className={cn('text-[11px]', colors.textMain)}>
+                            {bucket.name} <span className="font-semibold" style={{ color }}>{bucket.remainingPercent}% remaining</span>
+                            {bucket.resetsAt ? (
+                              <span className={cn('ml-1', colors.textMuted)}>· resets {formatReset(bucket.resetsAt)}</span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className={cn('text-[10px] mt-2', colors.textMuted)}>
+              Separate from the Gemini app meter · checked {formatReset(antigravity.capturedAt)}
+            </div>
+          </>
+        ) : (
+          <p className={cn('text-[10px] italic', colors.textMuted)}>{antigravityError || 'Loading…'}</p>
+        )}
+      </div>
+
       <div className={cn('rounded-2xl border p-3 mb-3', colors.panelBg, colors.panelBorder)}>
         <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)}>
           Claude usage

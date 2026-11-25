@@ -9,6 +9,7 @@ import {
 } from '../services/db.js';
 import { authMiddleware } from '../middleware/auth.js';
 import {
+  getAntigravityUsage,
   getClaudeUsage,
   getCodexUsage,
   listPersistedUsageWindows,
@@ -99,6 +100,14 @@ router.get('/usage/codex', authMiddleware, async (_req, res) => {
     res.json(await getCodexUsage());
   } catch (error) {
     res.status(502).json({ error: error instanceof Error ? error.message : 'Codex usage unavailable' });
+  }
+});
+
+router.get('/usage/antigravity', authMiddleware, async (req, res) => {
+  try {
+    res.json(await getAntigravityUsage(req.query.refresh === '1'));
+  } catch (error) {
+    res.status(502).json({ error: error instanceof Error ? error.message : 'Antigravity usage unavailable' });
   }
 });
 

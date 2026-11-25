@@ -8,6 +8,8 @@
  */
 
 import { promises as fs } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import os from 'node:os';
 import path from 'node:path';
 import { getDb } from './db.js';
@@ -15,8 +17,10 @@ import { getDb } from './db.js';
 const CLAUDE_CREDENTIALS_PATH = path.join(os.homedir(), '.claude', '.credentials.json');
 const CLAUDE_USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
 const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
+const ANTIGRAVITY_CLI_PATH = process.env.ANTIGRAVITY_CLI_PATH || path.join(os.homedir(), '.local', 'bin', 'agy');
 const USAGE_CACHE_MS = 60_000;
 const CODEX_SCAN_FILES = 10;
+const execFileAsync = promisify(execFile);
 
 export interface ClaudeLimit {
   kind: string;
@@ -77,6 +81,26 @@ export interface CodexUsage {
   limitReached: string | null;
 }
 
+export interface AntigravityUsageBucket {
+  id: string;
+  name: string;
+  remainingPercent: number;
+  usedPercent: number;
+  windowMinutes: number | null;
+  resetsAt: string | null;
+}
+
+export interface AntigravityUsageGroup {
+  name: string;
+  description: string | null;
+  buckets: AntigravityUsageBucket[];
+}
+
+export interface AntigravityUsage {
+  groups: AntigravityUsageGroup[];
+  capturedAt: string;
+}
+
 export interface PersistedUsageWindow {
   lane: string;
   windowKey: string;
@@ -95,6 +119,58 @@ function isoOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function antigravityWindowMinutes(id: string, name: string): number | null {
+  const value = `${id} ${name}`.toLowerCase();
+  if (value.includes('5h') || value.includes('five hour')) return 300;
+  if (value.includes('weekly')) return 10_080;
+  return null;
+}
+
+/** Parse the structured payload returned by `agy -p /usage --output-format json`. */
+export function parseAntigravityUsage(raw: Record<string, unknown>, capturedAt = new Date().toISOString()): AntigravityUsage {
+  const command = raw.command as Record<string, unknown> | undefined;
+  const data = command?.data as Record<string, unknown> | undefined;
+  if (command?.name !== 'usage' || !Array.isArray(data?.groups)) {
+    throw new Error('Antigravity CLI did not return structured usage data');
+  }
+
+  const groups: AntigravityUsageGroup[] = [];
+  for (const rawGroup of data.groups) {
+    if (!rawGroup || typeof rawGroup !== 'object') continue;
+    const group = rawGroup as Record<string, unknown>;
+    const name = typeof group.name === 'string' && group.name ? group.name : 'Antigravity models';
+    const buckets: AntigravityUsageBucket[] = [];
+    if (Array.isArray(group.buckets)) {
+      for (const rawBucket of group.buckets) {
+        if (!rawBucket || typeof rawBucket !== 'object') continue;
+        const bucket = rawBucket as Record<string, unknown>;
+        const remainingFraction = num(bucket.remaining_fraction);
+        if (remainingFraction === null) continue;
+        const id = typeof bucket.id === 'string' ? bucket.id : '';
+        const bucketName = typeof bucket.name === 'string' && bucket.name ? bucket.name : 'Limit remaining';
+        const remainingPercent = Math.round(Math.min(1, Math.max(0, remainingFraction)) * 100);
+        buckets.push({
+          id,
+          name: bucketName,
+          remainingPercent,
+          usedPercent: 100 - remainingPercent,
+          windowMinutes: antigravityWindowMinutes(id, bucketName),
+          resetsAt: isoOrNull(bucket.reset_time),
+        });
+      }
+    }
+    if (buckets.length > 0) {
+      groups.push({
+        name,
+        description: typeof group.description === 'string' ? group.description : null,
+        buckets,
+      });
+    }
+  }
+  if (groups.length === 0) throw new Error('Antigravity CLI returned no usage buckets');
+  return { groups, capturedAt };
 }
 
 function formatMinorAmount(value: unknown): string | null {
@@ -414,6 +490,45 @@ async function newestCodexTranscripts(limit: number): Promise<string[]> {
 }
 
 let codexCache: { at: number; data: CodexUsage } | null = null;
+let antigravityCache: { at: number; data: AntigravityUsage } | null = null;
+
+export async function getAntigravityUsage(forceRefresh = false): Promise<AntigravityUsage> {
+  if (!forceRefresh && antigravityCache && Date.now() - antigravityCache.at < USAGE_CACHE_MS) {
+    return antigravityCache.data;
+  }
+  const { stdout } = await execFileAsync(
+    ANTIGRAVITY_CLI_PATH,
+    ['-p', '/usage', '--output-format', 'json'],
+    { timeout: 30_000, maxBuffer: 2 * 1024 * 1024 },
+  );
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(stdout.trim()) as Record<string, unknown>;
+  } catch {
+    throw new Error('Antigravity CLI returned unreadable usage data');
+  }
+  const data = parseAntigravityUsage(raw);
+  for (const group of data.groups) {
+    const lane = `antigravity:${group.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    for (const bucket of group.buckets) {
+      recordUsageWindow({
+        lane,
+        windowKey: bucket.id || bucket.name.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        usedPercent: bucket.usedPercent,
+        windowMinutes: bucket.windowMinutes,
+        resetsAt: bucket.resetsAt,
+        capturedAt: data.capturedAt,
+        metadata: {
+          groupName: group.name,
+          bucketName: bucket.name,
+          remainingPercent: bucket.remainingPercent,
+        },
+      });
+    }
+  }
+  antigravityCache = { at: Date.now(), data };
+  return data;
+}
 
 export async function getCodexUsage(): Promise<CodexUsage> {
   if (codexCache && Date.now() - codexCache.at < USAGE_CACHE_MS) return codexCache.data;
