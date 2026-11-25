@@ -58,6 +58,16 @@ export const APPS: AppDef[] = APP_DEFS.map((app) => ({
 
 export const DOCK_APPS = APPS.filter((a) => a.dock);
 
+// Every full-screen phone surface that Advanced Appearance can paint.
+export const APPEARANCE_SECTIONS: Array<{ id: string; name: string }> = [
+  { id: 'settings', name: 'Settings' },
+  { id: 'home', name: 'Home' },
+  { id: 'locked', name: 'Lock screen' },
+  { id: 'appdrawer', name: 'App drawer' },
+  ...APPS.filter((app) => app.screen).map((app) => ({ id: app.screen!, name: app.name })),
+].filter((section, index, all) => all.findIndex((candidate) => candidate.id === section.id) === index);
+
+
 export const CATEGORY_ORDER: AppDef['category'][] = ['Companion', 'Tools', 'Fun', 'System'];
 
 export function appsByCategory(): Array<{ category: AppDef['category']; apps: AppDef[] }> {

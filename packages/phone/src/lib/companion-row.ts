@@ -39,3 +39,22 @@ export function normalizeCompanionRow<T extends Record<string, unknown>>(row: T)
 export function normalizeCompanionRows(rows: unknown): Array<Record<string, unknown> & CompanionRowFields> {
   return Array.isArray(rows) ? rows.map((r) => normalizeCompanionRow(r as Record<string, unknown>)) : [];
 }
+
+/**
+ * True when a companion row is still an unconfigured software placeholder slot
+ * (Companion B / Companion C with no custom name or avatar).
+ */
+export function isDormantCompanionSlot(row: { id?: unknown; slug?: unknown; display_name?: unknown; avatar?: unknown; avatar_url?: unknown }): boolean {
+  const slug = String(row.slug ?? row.id ?? '').trim();
+  const name = String(row.display_name ?? '').trim();
+  const hasAvatar = Boolean(row.avatar_url || row.avatar);
+  if (hasAvatar) return false;
+  return (slug === 'companion-b' && (!name || name === 'Companion B'))
+    || (slug === 'companion-c' && (!name || name === 'Companion C'));
+}
+
+export function filterInhabitedCompanions<T extends { id?: unknown; slug?: unknown; display_name?: unknown; avatar?: unknown; avatar_url?: unknown }>(rows: T[]): T[] {
+  const inhabited = rows.filter((r) => !isDormantCompanionSlot(r));
+  return inhabited.length > 0 ? inhabited : rows;
+}
+

@@ -260,9 +260,10 @@ if (phoneBuildPath) {
   app.get(['/phone', '/phone/*'], (req, res) => {
     res.redirect(302, '/' + queryOf(req.originalUrl));
   });
-  app.use(express.static(phoneBuildPath));
+  app.use(express.static(phoneBuildPath, { index: false }));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/ws')) return next();
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(join(phoneBuildPath, 'index.html'));
   });
 } else if (frontendBuildPath) {

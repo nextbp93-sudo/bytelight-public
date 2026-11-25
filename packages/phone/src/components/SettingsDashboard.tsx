@@ -22,7 +22,10 @@ import { AppShell } from "./AppShell";
 import Cropper from "react-easy-crop";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AppTheme, ThemeId, ThemeMode, AppSettings } from "../types";
+import { AppTheme, ThemeId, ThemeMode, AppSettings, type AppThemePreset, type AppearanceSaveResult } from "../types";
+import type { VoiceCompanion } from "../lib/voices";
+import { AppearancePreview } from "./AppearancePreview";
+import { AppearanceStudio } from "./AppearanceStudio";
 import { THEMES, themeRadiusPx, withAccentOverride, ACCENT_PALETTES, TYPOGRAPHY_PRESETS, fontStack } from "../lib/theme";
 import { APPS, migrateAppIds } from "../lib/apps";
 import { noteColorsForAccent } from '../lib/note-colors';
@@ -72,6 +75,16 @@ function isNearWhite(hex: string): boolean {
 
 interface SettingsDashboardProps {
   theme: AppTheme;
+  previewTheme?: AppTheme;
+  onPreviewChange?: (theme: AppTheme | undefined) => void;
+  onThemeReplace?: (theme: AppTheme) => Promise<AppearanceSaveResult>;
+  onPresetsSave?: (presets: AppThemePreset[]) => Promise<void>;
+  validatePresets?: (presets: AppThemePreset[]) => void;
+  syncError?: string;
+  settingsSaving?: boolean;
+  onRetrySync?: () => Promise<void>;
+  companions?: VoiceCompanion[];
+  ownerAvatar?: string;
   appSettings: Omit<AppSettings, "theme" | "contacts">;
   onThemeChange: (theme: Partial<AppTheme>) => void;
   onSettingsChange: (
@@ -82,6 +95,16 @@ interface SettingsDashboardProps {
 
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   theme,
+  previewTheme,
+  onPreviewChange = () => {},
+  onThemeReplace,
+  onPresetsSave,
+  validatePresets = () => {},
+  syncError,
+  settingsSaving = false,
+  onRetrySync = async () => {},
+  companions = [],
+  ownerAvatar,
   appSettings,
   onThemeChange,
   onSettingsChange,
@@ -89,8 +112,18 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const activeTheme = withAccentOverride(THEMES[theme.id] || THEMES["monochrome"], theme.accentOverride, theme.accentPalette);
-  const colors = activeTheme[theme.mode];
+  const displayTheme = previewTheme ?? theme;
+  const activeTheme = withAccentOverride(THEMES[displayTheme.id] || THEMES["monochrome"], displayTheme.accentOverride, displayTheme.accentPalette);
+  const colors = activeTheme[displayTheme.mode];
+  const [previewSection, setPreviewSection] = useState('settings');
+  const shownAvatar = ownerAvatar || appSettings.userAvatar;
+  const handleApplyTheme = onThemeReplace ?? (async (next: AppTheme) => {
+    onThemeChange(next);
+    return { synced: true, message: 'Applied.' };
+  });
+  const handlePresetsSave = onPresetsSave ?? (async (themePresets: AppThemePreset[]) => {
+    onSettingsChange({ themePresets });
+  });
 
   // These five used to be five pale hex values written into this file, saved on
   // her theme, and handed to the Notes app as the only source -- so the notes
@@ -535,34 +568,10 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
         <div className="space-y-8">
           {activeTab === "appearance" && (
             <>
-              {/* Live Preview — BL's appearance panel, first thing: the vibe
-                  check. Bubbles + buttons drawn with the live theme/skin. */}
-              <section className={cn("space-y-3 p-4 rounded-2xl border backdrop-blur-md", colors.panelBg, colors.panelBorder)}>
-                <div className="flex items-center justify-between">
-                  <h3 className={cn("micro-label", colors.accentText)}>Live Preview</h3>
-                  <span className="h-2 w-2 rounded-full" style={{ background: resolvedAccent }} />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-start">
-                    <div data-user="false" className={cn("bytelight-message-bubble border px-3.5 py-2 rounded-[var(--shape-bubble)] rounded-tl-none text-[13px]", colors.compBubbleBg, colors.compBubbleText, colors.panelBorder)}>
-                      How's the vibe looking?
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div data-user="true" className={cn("bytelight-message-bubble border px-3.5 py-2 rounded-[var(--shape-bubble)] rounded-tr-none text-[13px]", colors.userBubbleBg, colors.userBubbleText, colors.panelBorder)}>
-                      Cosmic. ✨
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button className="bytelight-on-accent rounded-full px-4 py-1.5 text-[12px] font-bold" style={{ background: resolvedAccent }}>
-                    Primary
-                  </button>
-                  <button className={cn("rounded-full border px-4 py-1.5 text-[12px] font-bold", colors.panelBorder, colors.textMain)}>
-                    Ghost
-                  </button>
-                </div>
-              </section>
+              <AppearancePreview theme={displayTheme} companions={companions} section={previewSection} userAvatar={shownAvatar} userRing={appSettings.userAvatarColor} />
+              <AppearanceStudio theme={theme} appSettings={appSettings} companions={companions} colors={colors}
+                onApplyTheme={handleApplyTheme} onPresetsSave={handlePresetsSave} validatePresets={validatePresets} syncError={syncError} settingsSaving={settingsSaving} onRetrySync={onRetrySync}
+                onPreviewChange={onPreviewChange} onPreviewSectionChange={setPreviewSection} />
 
               {/* Appearance Mode */}
               <section className={cn("space-y-4 p-4 rounded-2xl border backdrop-blur-md", colors.panelBg, colors.panelBorder)}>

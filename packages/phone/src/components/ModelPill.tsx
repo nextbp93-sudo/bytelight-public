@@ -22,6 +22,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch, useActiveThreadId } from '../bytelight';
 import { clearProviderScopedState } from '../bytelight/socket';
+import { isDormantCompanionSlot } from '../lib/companion-row';
 import {
   CLAUDE_VARIANT_OPTIONS,
   DEFAULT_BRAIN,
@@ -111,7 +112,9 @@ export function ModelPill({ themeConfig, themeMode, defaultFor }: ModelPillProps
       .then((data) => {
         if (stale) return;
         const groups = new Map<string, Array<{ id: string; name: string }>>();
-        for (const c of (data?.roster ?? []) as Array<{ brain?: string; display_name?: string; id?: string; slug?: string }>) {
+        const roster = ((data?.roster ?? []) as Array<{ brain?: string; display_name?: string; id?: string; slug?: string; avatar?: string; avatar_url?: string }>)
+          .filter((c) => !isDormantCompanionSlot(c));
+        for (const c of roster) {
           const b = c.brain || DEFAULT_BRAIN;
           const id = c.slug || c.id || b;
           groups.set(b, [...(groups.get(b) || []), { id, name: c.display_name || id }]);

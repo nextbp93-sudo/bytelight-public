@@ -125,10 +125,11 @@ import { StarredSheet } from './components/StarredSheet';
 import { DateDivider } from './components/DateDivider';
 import { splitMessageVoices } from './lib/voices';
 import { deliverLastCrashReport } from './bytelight/pocket-voice';
-import { normalizeCompanionRow } from './lib/companion-row';
+import { normalizeCompanionRow, filterInhabitedCompanions } from './lib/companion-row';
 import { buildSearchRequest, parseSearchPage, searchDelayMs, type SearchMode } from './lib/search-domain';
 import { pushJumpFromMessage, pushJumpFromSearch, stripPushJumpParams, type PushJump } from './bytelight/push-target';
 import { WallpaperMedia } from './components/WallpaperMedia';
+import { AppearanceRuntime } from './components/AppearanceRuntime';
 
 // A push tap that cold-started the app carries its target in the URL. Read
 // once at load and strip it, so a later reload doesn't jump again.
@@ -553,7 +554,7 @@ export default function App() {
     apiFetch('/api/companions')
       .then(res => res.ok ? res.json() : null)
       .then(async data => {
-        if (data?.companions) setDbCompanions(data.companions.map(toDbCompanion));
+        if (data?.companions) setDbCompanions(filterInhabitedCompanions(data.companions.map(toDbCompanion)));
         const owner = ownerFromCompanionsPayload(data) ?? await fetchOwnerFromPreferences();
         if (owner?.name) setOwnerName(owner.name);
       })
@@ -570,7 +571,7 @@ export default function App() {
     let stale = false;
     apiFetch(`/api/threads/${ksActiveThreadId}/roster`)
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (!stale) setThreadCompanions((data?.roster ?? []).map(toDbCompanion)); })
+      .then(data => { if (!stale) setThreadCompanions(filterInhabitedCompanions((data?.roster ?? []).map(toDbCompanion))); })
       .catch(() => { if (!stale) setThreadCompanions([]); });
     return () => { stale = true; };
   }, [ksActiveThreadId, ksProfiles]);
@@ -1821,6 +1822,7 @@ export default function App() {
       style={{ paddingBottom: 'var(--sab)' }}
     >
       {customThemeStyles && <style>{customThemeStyles}</style>}
+      <AppearanceRuntime appearance={theme.appearance} section={showSettings ? 'settings' : osState} legacyMotion={theme.fx?.motion} />
       {/* Global Wallpaper Layer */}
       <AppBackground theme={theme} />
 
@@ -2264,7 +2266,7 @@ export default function App() {
               {!isSearching && (
                 <motion.div className="min-w-0" initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}>
                   <h1
-                    className="text-xl sm:text-2xl italic tracking-tight leading-none truncate"
+                    className="text-xl sm:text-2xl tracking-tight leading-none truncate"
                     style={{ color: 'var(--bytelight-accent)', fontFamily: 'var(--font-heading, inherit)' }}
                   >
                     {activeThread?.name || appSettings.groupChatName || 'Bytelight'}

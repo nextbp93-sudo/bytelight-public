@@ -8,3 +8,5 @@ export * from './note-roles.js';
 export * from './status-tags.js';
 export * from './spotify.js';
 export * from './story-shelf.js';
+export * from './theme-appearance.js';
+

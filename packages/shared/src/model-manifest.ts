@@ -348,6 +348,9 @@ export const MODELS: readonly ModelEntry[] = [
   antigravityEntry('gemini-4-argon-low', 'Gemini 4 Argon (Low)'),
   antigravityEntry('gemini-4-argon-medium', 'Gemini 4 Argon (Medium)'),
   antigravityEntry('gemini-4-argon-high', 'Gemini 4 Argon (High)'),
+  antigravityEntry('gemini-4-carbon-low', 'Gemini 4 Carbon (Low)'),
+  antigravityEntry('gemini-4-carbon-medium', 'Gemini 4 Carbon (Medium)'),
+  antigravityEntry('gemini-4-carbon-high', 'Gemini 4 Carbon (High)'),
 ] as const;
 
 /**
