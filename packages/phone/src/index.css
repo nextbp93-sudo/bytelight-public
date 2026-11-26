@@ -2008,6 +2008,8 @@ h1, h2, h3, .micro-label {
 
 /* Full-screen wallpaper (transparent top & bottom chrome) + almost-clear message bubbles */
 .bytelight-shell-header,
+.bytelight-app-drawer,
+.bytelight-app-drawer-header,
 .bytelight-composer-wrap {
   background: transparent !important;
   background-color: transparent !important;
@@ -2017,8 +2019,22 @@ h1, h2, h3, .micro-label {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-.bytelight-shell-header {
+.bytelight-shell-header,
+.bytelight-app-drawer .bytelight-room-kicker,
+.bytelight-app-drawer .bytelight-app-grid-heading,
+.bytelight-app-drawer .bytelight-app-name {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.55) !important;
+}
+.bytelight-app-drawer .bytelight-field {
+  background: color-mix(in srgb, var(--bytelight-surface-strong) 24%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--bytelight-border) 38%, rgba(255, 255, 255, 0.16)) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  backdrop-filter: blur(6px) !important;
+}
+.bytelight-app-drawer .bytelight-app-tile {
+  background: color-mix(in srgb, var(--bytelight-comp-bubble) 24%, transparent) !important;
+  border-color: color-mix(in srgb, var(--bytelight-accent) 32%, rgba(255, 255, 255, 0.18)) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 .bytelight-theme-comp-bubble,
 .bytelight-message-bubble[data-user='false']:not([data-split]),
