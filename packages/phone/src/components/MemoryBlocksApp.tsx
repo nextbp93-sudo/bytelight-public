@@ -7,6 +7,7 @@ import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { useMemoryBlockVersion } from '../bytelight';
 import { normalizeCompanionRows } from '../lib/companion-row';
+import { OldWindowsSwitch } from './OldWindowsSwitch';
 
 interface MemoryBlocksAppProps {
   onClose: () => void;
@@ -388,6 +389,8 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
       )}
 
       <ArchivistSettings themeConfig={themeConfig} themeMode={themeMode} />
+
+      <OldWindowsSwitch colors={colors} />
 
       {/* Blocks list */}
       {tab === 'blocks' && (
