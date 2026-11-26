@@ -68,12 +68,18 @@ export type Quality = 'auto' | 'low' | 'medium' | 'high';
 const VALID_QUALITY: Quality[] = ['auto', 'low', 'medium', 'high'];
 
 export const ANTIGRAVITY_MODELS = [
-  'Gemini 3.5 Flash (Low)',
-  'Gemini 3.5 Flash (Medium)',
-  'Gemini 3.5 Flash (High)',
-  'Gemini 3.1 Pro (Low)',
-  'Gemini 3.1 Pro (High)',
+  'gemini-4-carbon-high',
+  'gemini-4-carbon-medium',
+  'gemini-4-carbon-low',
+  'gemini-4-neon-high',
+  'gemini-4-neon-medium',
+  'gemini-4-neon-low',
+  'gemini-3.8-flash-high',
+  'gemini-3.8-flash-medium',
+  'gemini-3.8-flash-low',
 ] as const;
+
+export const DEFAULT_ANTIGRAVITY_MODEL = 'gemini-4-neon-medium';
 
 export type AntigravityModel = typeof ANTIGRAVITY_MODELS[number];
 
@@ -93,14 +99,14 @@ export function getImageGenSettings(): ImageGenSettings {
   const backend = (getConfig('image_gen.backend') as ImageGenSettings['backend']) || 'codex';
   const size = (getConfig('image_gen.size') as ImageGenSettings['size']) || 'square';
   const quality = (getConfig('image_gen.quality') as Quality) || 'auto';
-  const antigravityModel = getConfig('image_gen.antigravity_model') as AntigravityModel || 'Gemini 3.5 Flash (Medium)';
+  const antigravityModel = (getConfig('image_gen.antigravity_model') as AntigravityModel) || DEFAULT_ANTIGRAVITY_MODEL;
   return {
     enabled: getConfigBool('image_gen.enabled', false),
     backend: ['codex', 'openai', 'cloudflare', 'antigravity', 'openart'].includes(backend) ? backend as ImageGenSettings['backend'] : 'codex',
     size: SIZE_MAP[size] ? size : 'square',
     quality: VALID_QUALITY.includes(quality) ? quality : 'auto',
     openaiModel: getConfig('image_gen.openai_model') || 'gpt-image-2',
-    antigravityModel: ANTIGRAVITY_MODELS.includes(antigravityModel) ? antigravityModel : 'Gemini 3.5 Flash (Medium)',
+    antigravityModel: ANTIGRAVITY_MODELS.includes(antigravityModel) ? antigravityModel : DEFAULT_ANTIGRAVITY_MODEL,
     openartModel: getConfig('image_gen.openart_model') || 'nano-banana-2-lite',
     monthlyBudgetUsd: getConfigNumber('image_gen.monthly_budget_usd', 0),
     hasOpenaiKey: !!getConfig('image_gen.openai_api_key'),
@@ -724,7 +730,8 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
     });
   });
 
-  const filename = await newGalleryName();
+  const producedExt = IMAGE_EXTS.has(extname(produced).toLowerCase()) ? extname(produced).toLowerCase() : '.png';
+  const filename = await newGalleryName(producedExt);
   const dest = join(GALLERY_DIR, filename);
   await fs.copyFile(produced, dest);
 
@@ -742,14 +749,14 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
   const start = Date.now();
   const { guidance: sizeDesc } = resolveSize(input);
   const sizeGuidance = sizeDesc ? ` Make it ${sizeDesc}.` : '';
-  const refs = await resolveAllRefs(input);
+  const refs = (await resolveAllRefs(input)).slice(0, 3);
 
-  // Build reference instruction if refs exist
+  // Build reference instruction if refs exist (Nano Banana ImagePaths takes up to 3)
   const refLine = refs.length > 0
-    ? `Use these reference images to maintain character/subject consistency: ${refs.join(', ')}. `
+    ? `Use these reference images in ImagePaths (max 3) to maintain strict character/subject consistency: ${refs.join(', ')}. `
     : '';
 
-  const instruction = `${refLine}generate an image of: ${input.prompt}${sizeGuidance}`;
+  const instruction = `Invoke the image-generator subagent immediately to generate one image. ${refLine}Prompt: ${input.prompt}${sizeGuidance}`;
 
   const bin = antigravityBin();
   if (!existsSync(bin)) {
@@ -774,7 +781,7 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
     // agy's print mode accepts its prompt as the final positional argument; it does
     // not read prompts from stdin. Keep every flag before --print, otherwise it
     // mistakes a later flag (such as --print-timeout) for the prompt.
-    const child = spawn(bin, ['--model', model, '--print-timeout', '10m', '--print', instruction], { env, cwd: '/tmp', stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(bin, ['--model', model, '--dangerously-skip-permissions', '--print-timeout', '10m', '--print', instruction], { env, cwd: '/tmp', stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     let stdout = '';
     let settled = false;
@@ -835,7 +842,8 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
     });
   });
 
-  const filename = await newGalleryName();
+  const producedExt = IMAGE_EXTS.has(extname(produced).toLowerCase()) ? extname(produced).toLowerCase() : '.png';
+  const filename = await newGalleryName(producedExt);
   const dest = join(GALLERY_DIR, filename);
   await fs.copyFile(produced, dest);
 
@@ -1331,6 +1339,14 @@ export async function generateImage(input: GenerateInput): Promise<GenerateResul
   try {
     return await generateViaCodex(input);
   } catch (error) {
+    if (
+      error instanceof ImageGenError &&
+      /usage limit|hit your usage limit|quota|rate limit|too many requests|\b429\b|upgrade to pro|purchase more credits|Could not run codex CLI/i.test(error.message) &&
+      existsSync(antigravityBin())
+    ) {
+      console.warn('[image-gen] Codex hit usage/rate limit — automatically falling back to Antigravity Nano Banana');
+      return await generateViaAntigravity(input);
+    }
     if (!(error instanceof ImageGenError) || !error.message.startsWith('SAFETY_REFUSED:')) throw error;
     if ((input.subjects?.length ?? 0) || (input.extraRefs?.length ?? 0) || (input.oneOffRefs?.length ?? 0)) {
       console.warn('[image-gen] safety-refused with refs — retrying once without reference images');

@@ -20,22 +20,16 @@ export const CODEX_MODELS = [
 // and the request quietly runs on the default instead. Refreshed Sep 5 2026;
 // the 3.5 family was retired upstream and had been dead in here for months.
 export const ANTIGRAVITY_MODELS = [
-  { id: 'Gemini 3.8 Flash (High)', name: 'Flash 3.8 High', desc: 'Newest Flash' },
-  { id: 'Gemini 3.8 Flash (Medium)', name: 'Flash 3.8 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.8 Flash (Low)', name: 'Flash 3.8 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.7 Flash (High)', name: 'Flash 3.7 High', desc: 'Previous Flash' },
-  { id: 'Gemini 3.7 Flash (Medium)', name: 'Flash 3.7 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.7 Flash (Low)', name: 'Flash 3.7 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.6 Flash (High)', name: 'Flash 3.6 High', desc: 'Older Flash' },
-  { id: 'Gemini 3.6 Flash (Medium)', name: 'Flash 3.6 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.6 Flash (Low)', name: 'Flash 3.6 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.1 Pro (High)', name: 'Pro 3.1 High', desc: 'Best Quality' },
-  { id: 'Gemini 3.1 Pro (Low)', name: 'Pro 3.1 Low', desc: 'Pro Fast' },
+  { id: 'gemini-4-neon-medium', name: 'Neon Med (Nano Banana)', desc: 'Fast & Reliable' },
+  { id: 'gemini-4-neon-high', name: 'Neon High', desc: 'Sharp Prompting' },
+  { id: 'gemini-4-carbon-high', name: 'Carbon High', desc: 'Best Reasoning' },
+  { id: 'gemini-4-carbon-medium', name: 'Carbon Med', desc: 'Balanced' },
+  { id: 'gemini-3.8-flash-high', name: 'Flash 3.8 High', desc: 'Fast Flash' },
+  { id: 'gemini-3.8-flash-medium', name: 'Flash 3.8 Med', desc: 'Lightest' },
 ];
 
-/** The one that has actually taken a picture here. Also the recovery value for
- *  a phone still holding a retired model in localStorage. */
-export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.1 Pro (High)';
+/** Default Antigravity/Gemini model for Nano Banana image generation. */
+export const ANTIGRAVITY_DEFAULT_MODEL = 'gemini-4-neon-medium';
 
 // OpenArt models — key is the picker value (kling-3-omni appears twice, once
 // per media). Credit costs are list price at default config; MCP-originated
