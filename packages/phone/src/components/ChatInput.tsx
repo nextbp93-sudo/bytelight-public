@@ -615,6 +615,21 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   };
 
   const readDocument = async (file: File): Promise<string> => {
+    if (
+      file.name.toLowerCase().endsWith('.zip') ||
+      file.type === 'application/zip' ||
+      file.type === 'application/x-zip-compressed'
+    ) {
+      const safeName = file.name.toLowerCase().endsWith('.zip') ? file.name : `${file.name}.zip`;
+      const form = new FormData();
+      form.append('file', new File([file], safeName, { type: 'application/zip' }));
+      const res = await apiFetch('/api/files', { method: 'POST', body: form });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error || `Zip upload failed (${res.status})`);
+      }
+      return `[Uploaded zip archive: ${safeName} (${(file.size / 1024).toFixed(1)} KB) — server fileId: ${payload.fileId}, path: /opt/bytelight/data/files/${payload.fileId}.zip]`;
+    }
     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -984,7 +999,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         type="file"
         id="file-text-input"
         name="file-text-input"
-        accept=".txt,.md,.csv,.json,.log,.pdf"
+        accept=".txt,.md,.csv,.json,.log,.pdf,.zip,application/zip,application/x-zip-compressed"
         multiple
         ref={fileInputRef}
         onChange={handleFileTextChange}
