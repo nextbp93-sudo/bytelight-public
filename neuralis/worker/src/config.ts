@@ -147,7 +147,7 @@ export const CONTEXT_BUCKETS_SQL: string = CONTEXT_BUCKETS.map((b) => `'${b.repl
 
 // Surface pool configuration
 export const SURFACE_POOL_RATIOS = { core: 0.5, novelty: 0.2, dormant: 0.2, edge: 0.1 };
-export const VECTOR_SCORE_CORE = 0.75;  // Gemini Embedding 2 scores ~15pts higher than BGE
+export const VECTOR_SCORE_CORE = 0.75;
 export const VECTOR_SCORE_EDGE = 0.55;
 export const NOVELTY_FLOORS: Record<string, number> = { heavy: 0.3, medium: 0.2, light: 0.1 };
 export const NOVELTY_DECAY_RATES: Record<string, number> = { heavy: 0.08, medium: 0.12, light: 0.15 };

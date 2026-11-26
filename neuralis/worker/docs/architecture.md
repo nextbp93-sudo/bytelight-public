@@ -59,7 +59,7 @@ Episodic memory — dated entries for recording experiences, reflections, or eve
 
 ### Visual Memory
 
-Images stored in R2 with automatic WebP conversion. Each image gets a multimodal embedding (Gemini combines the image content with contextual text for richer semantic meaning). Images participate in surfacing alongside text observations.
+Images stored in R2 with automatic WebP conversion. Each image gets a multimodal EmbeddingGemma 2 vector through the Worker's Cloudflare AI binding, combining image content with contextual text. Images participate in surfacing alongside text observations.
 
 ## Emotional Processing
 

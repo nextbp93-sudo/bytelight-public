@@ -10,6 +10,9 @@ compatibility_flags = ["nodejs_compat"]
 
 workers_dev = true
 
+[ai]
+binding = "AI"
+
 # Uncomment and configure for custom domain:
 # [[routes]]
 # pattern = "your-domain.example.com"
@@ -66,7 +69,8 @@ __HOUSE_HUMAN_CONTEXT__ = "\"human-world\""
 
 # Environment variables (set via wrangler secret or dashboard):
 # MIND_API_KEY        - Required. API key for authentication
-# GEMINI_API_KEY      - Required. Google Gemini API key for embeddings
+# Embeddings and mechanical generation use the bound Cloudflare Workers AI
+# service above; no external model API key is required.
 # SIGNING_SECRET      - Optional. Separate secret for signed URLs (defaults to MIND_API_KEY)
 # MCP_CONNECTOR_SECRET - Optional. Secret path for MCP connector auth
 # WEATHER_API_KEY     - Optional. WeatherAPI.com key for inner weather

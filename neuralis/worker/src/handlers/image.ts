@@ -117,7 +117,7 @@ export async function handleMindStoreImage(env: Env, params: Record<string, unkn
           context ? `(${context})` : "", emotion ? `[${emotion}]` : ""
         ].filter(Boolean).join(" ");
         const embeddingBinary = finalBinary || Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
-        embedding = await getImageEmbedding(env.GEMINI_API_KEY, embeddingBinary.buffer as ArrayBuffer, storedPath?.includes('.webp') ? 'image/webp' : mimeType, contextText);
+        embedding = await getImageEmbedding(env, embeddingBinary.buffer as ArrayBuffer, storedPath?.includes('.webp') ? 'image/webp' : mimeType, contextText);
       } else {
         const semanticText = [
           entityName ? `${entityName}:` : "", description,

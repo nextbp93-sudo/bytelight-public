@@ -25,7 +25,7 @@ These can go straight to a PR:
 Open a GitHub Issue to discuss before writing code:
 
 - **New MCP tools** — describe the use case and how it fits the cognitive architecture
-- **Embedding provider changes** — alternative to Gemini (OpenAI, Cohere, local models)
+- **Embedding provider changes** — alternatives to the bound Workers AI model (OpenAI, Cohere, local models)
 - **Database schema changes** — migrations affect existing users
 - **Subconscious daemon changes** — the processing pipeline is load-bearing infrastructure
 - **Surfacing algorithm changes** — the 3-pool system (core/novelty/edge) is carefully tuned
@@ -78,7 +78,7 @@ npx wrangler dev
 src/
   index.ts          — MCP tool definitions, handlers, subconscious daemon (~6500 lines)
   types.ts          — Shared TypeScript interfaces
-  embeddings.ts     — Gemini embedding provider
+  embeddings.ts     — Cloudflare Workers AI provider
   adapter.ts        — D1-compatible adapter for Postgres via Hyperdrive
   vectors.ts        — Vectorize-compatible adapter for pgvector
   http/

@@ -1,9 +1,9 @@
 export interface Env {
   DB: D1Database;
+  AI: Ai;
   HYPERDRIVE: Hyperdrive;
   VECTORS: VectorizeIndex;
   R2_IMAGES: R2Bucket;
-  GEMINI_API_KEY: string;
   GENERATION_MODEL?: string;
   MIND_API_KEY: string;
   SIGNING_SECRET?: string;

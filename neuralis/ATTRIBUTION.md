@@ -25,7 +25,7 @@ by **Cindy (Fox) & Alex**:
 
 - Source: https://github.com/cindiekinzz-coder/NESTstack (NESTeq worker)
 - What we adapted: per-companion `who` ledgers on feelings and signals, the
-  house's names in the ADE, Gemini embeddings with a raised pillar floor,
+  house's names in the ADE, semantic embeddings with a raised pillar floor,
   feelings in their own vector namespace, weather-not-canon read-side
   framing, live vocabulary tuning. The core ideas — *personality is
   accumulated, not assigned; everything is a feeling* — are theirs.
@@ -66,7 +66,7 @@ designed by the **Digital Haven community** (April 2026) and shipped by
 **Cindy (Fox) & Alex**:
 
 - Source: https://github.com/cindiekinzz-coder/NESTstack (NESTknow module)
-- What we adapted: per-companion `who` ledgers, Gemini embeddings on the
+- What we adapted: per-companion `who` ledgers, multimodal embeddings on the
   shared index with JS-side filtering, extraction over Neuralis observations
   and journals, curriculum tracks rewritten for this house, decay riding the
   cron board. The model — *knowledge is not memory; every pull is a vote* —

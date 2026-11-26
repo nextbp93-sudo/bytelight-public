@@ -1,4 +1,4 @@
-import { getEmbedding as getGeminiEmbedding } from "./embeddings";
+import { getEmbedding as getWorkersEmbedding } from "./embeddings";
 import type { Env, SubconsciousState } from "./types";
 
 // Normalize text to ASCII - prevents Unicode homoglyph issues
@@ -37,14 +37,90 @@ export async function imageUrl(imageId: number | string, env: Env): Promise<stri
   return `${workerUrl(env)}/img/${imageId}?expires=${expires}&sig=${sig}`;
 }
 
-// Generate embedding using Gemini Embedding 2
+// Generate an embedding through the Worker's Cloudflare AI binding.
 export async function getEmbedding(env: Env, text: string): Promise<number[]> {
-  return getGeminiEmbedding(env.GEMINI_API_KEY, text);
+  return getWorkersEmbedding(env, text);
 }
 
 export async function searchVectors(env: Env, query: string, topK: number) {
   const embedding = await getEmbedding(env, query);
   return env.VECTORS.query(embedding, { topK, returnMetadata: "all" });
+}
+
+export interface TextVectorWrite {
+  id: string;
+  text: string;
+  metadata: Record<string, string>;
+  sourceType: string;
+  sourceId?: string | number;
+}
+
+/**
+ * Store a text vector, or durably queue it when AI/Vectorize is temporarily
+ * unavailable. The cognitive row is authoritative; its vector is a retryable
+ * search sidecar and must never make the memory write fail.
+ */
+export async function upsertTextVector(env: Env, item: TextVectorWrite): Promise<boolean> {
+  try {
+    const embedding = await getEmbedding(env, item.text);
+    await env.VECTORS.upsert([{ id: item.id, values: embedding, metadata: item.metadata }]);
+    try {
+      await env.DB.prepare("DELETE FROM vector_sync_queue WHERE vector_id = ?").bind(item.id).run();
+    } catch { /* migration may not be applied yet */ }
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+      await env.DB.prepare(
+        `INSERT INTO vector_sync_queue
+         (vector_id, source_type, source_id, text_content, metadata, attempts, last_error)
+         VALUES (?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(vector_id) DO UPDATE SET
+           text_content = excluded.text_content,
+           metadata = excluded.metadata,
+           attempts = vector_sync_queue.attempts + 1,
+           last_error = excluded.last_error,
+           updated_at = datetime('now')`,
+      ).bind(
+        item.id,
+        item.sourceType,
+        item.sourceId == null ? null : String(item.sourceId),
+        item.text,
+        JSON.stringify(item.metadata),
+        message.slice(0, 2000),
+      ).run();
+    } catch (queueError) {
+      console.warn("Vector sync queue write failed", queueError);
+    }
+    console.warn(`Queued vector ${item.id} for retry`, message);
+    return false;
+  }
+}
+
+/** Retry text vectors left behind by a temporary provider outage. */
+export async function syncPendingTextVectors(env: Env, limit = 50): Promise<void> {
+  let rows: unknown[] = [];
+  try {
+    const result = await env.DB.prepare(
+      `SELECT id, vector_id, source_type, source_id, text_content, metadata
+       FROM vector_sync_queue ORDER BY id ASC LIMIT ?`,
+    ).bind(Math.max(1, Math.min(200, Math.trunc(limit)))).all();
+    rows = result.results ?? [];
+  } catch {
+    return; // migration not applied yet
+  }
+  for (const raw of rows) {
+    const row = raw as Record<string, unknown>;
+    let metadata: Record<string, string>;
+    try { metadata = JSON.parse(String(row.metadata)); } catch { metadata = {}; }
+    await upsertTextVector(env, {
+      id: String(row.vector_id),
+      text: String(row.text_content),
+      metadata,
+      sourceType: String(row.source_type),
+      sourceId: row.source_id == null ? undefined : String(row.source_id),
+    });
+  }
 }
 
 // Get subconscious state from daemon processing

@@ -1,4 +1,5 @@
 import type { Env } from "./types";
+import { EMBEDDING_MODEL, getGenerationModel } from "./embeddings";
 
 export type RuntimeFamily = "bl" | "gpt" | "system" | "unknown";
 
@@ -46,6 +47,10 @@ export function runtimeIdentity(env: Env): string {
     runtime_family: p.runtimeFamily,
     runtime_tag: p.runtimeTag,
     transport: p.transport,
+    embedding_provider: "cloudflare-workers-ai",
+    embedding_model: EMBEDDING_MODEL,
+    generation_provider: "cloudflare-workers-ai",
+    generation_model: getGenerationModel(),
   });
 }
 

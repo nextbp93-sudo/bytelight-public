@@ -8,7 +8,7 @@ and a daemon that finds patterns while you sleep.</em></p>
 
 ## What It Does
 
-A Model Context Protocol (MCP) server providing **63 tools** across four layers:
+A Model Context Protocol (MCP) server providing **68 tools**: 63 cognitive tools across four layers, runtime identity, and four runtime-tagged generation operations.
 
 **Mind Bridge (31 tools) — the heart**
 - **Entities & Observations** — knowledge graph with typed entities, weighted observations, contextual namespaces
@@ -43,7 +43,7 @@ A Model Context Protocol (MCP) server providing **63 tools** across four layers:
 ┌─────────────────────────────────────────────┐
 │              Cloudflare Worker              │
 │                                             │
-│  MCP Protocol ←→ 63 Tool Handlers           │
+│  MCP Protocol ←→ 68 Tool Handlers           │
 │  REST API     ←→ Dashboard Endpoints        │
 │  Cron Trigger ←→ Daemon (rumination,        │
 │                  co-surfacing, proposals)   │
@@ -51,7 +51,7 @@ A Model Context Protocol (MCP) server providing **63 tools** across four layers:
 │  D1 (SQLite)     — all four layers, one DB  │
 │  Vectorize       — 768-dim embeddings       │
 │  R2              — image storage            │
-│  Gemini Embedding — vectors                 │
+│  Workers AI      — multimodal vectors       │
 └─────────────────────────────────────────────┘
 ```
 
@@ -63,7 +63,7 @@ A Model Context Protocol (MCP) server providing **63 tools** across four layers:
 
 - A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier works)
 - [Node.js](https://nodejs.org/) 18+
-- A [Google AI Studio](https://aistudio.google.com/apikey) API key (free — for Gemini embeddings)
+- Workers AI enabled on the same Cloudflare account (the binding is declared in `wrangler.toml`)
 
 ## Getting Started
 
@@ -127,7 +127,7 @@ The `slug` is what the brain stores in every `who` / `owner` column and what the
 npx wrangler d1 migrations apply DB --remote
 ```
 
-Migrations run `0001` through `0016`, including the Cortex schema (`0004`), emergent personality (`0006`), the emergence engine (`0008`), the seven-bucket context taxonomy (`0009`), the knowledge layer (`0011`), soul portraits (`0012`), the feelings stream (`0013`), journal/dream companion attribution and the dream vividness lifecycle (`0014`), dream authoring fields (`0015`), and restored feeling provenance for knowledge sources (`0016`).
+Migrations run `0001` through `0020`, including Cortex, personality, emergence, taxonomy, knowledge, soul, feelings, immutable BL/GPT provenance (`0018`), the runtime-authored generation queue (`0019`), and durable vector retry (`0020`).
 
 ### 5. Set secrets
 
@@ -135,8 +135,6 @@ Migrations run `0001` through `0016`, including the Cortex schema (`0004`), emer
 # Required: pick any strong random string — authenticates all requests
 npx wrangler secret put MIND_API_KEY
 
-# Required: Gemini API key for embeddings
-npx wrangler secret put GEMINI_API_KEY
 ```
 
 Optional:
@@ -208,7 +206,7 @@ Treat that full URL as a credential. Never commit it, post it, or hardcode it in
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `MIND_API_KEY` | Yes | API key for Bearer auth — any strong random string |
-| `GEMINI_API_KEY` | Yes | Google Gemini API key for embeddings |
+| `AI` binding | Yes | Cloudflare Workers AI binding declared in `wrangler.toml`; no secret or external subscription |
 | `SIGNING_SECRET` | No | Separate HMAC key for signed image URLs (defaults to MIND_API_KEY) |
 | `MCP_CONNECTOR_SECRET` | No | Secret path for Claude.ai connector auth |
 | `WEATHER_API_KEY` | No | WeatherAPI.com key for inner weather |
@@ -221,7 +219,7 @@ Treat that full URL as a credential. Never commit it, post it, or hardcode it in
 
 ## MCP Tools Reference
 
-All 63, grouped by function.
+All 68, grouped by function.
 
 ### Mind Bridge — Wake Sequence
 
@@ -344,7 +342,7 @@ All 63, grouped by function.
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — how the cognitive systems work
-- [`docs/alternative-embeddings.md`](docs/alternative-embeddings.md) — swapping Gemini for other embedding providers
+- [`docs/alternative-embeddings.md`](docs/alternative-embeddings.md) — changing the bound Workers AI embedding provider safely
 - [`../ATTRIBUTION.md`](../ATTRIBUTION.md) — lineage and ported ideas, with receipts
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed and when
 

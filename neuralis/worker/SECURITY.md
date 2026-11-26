@@ -37,7 +37,7 @@ Resonant Mind runs as a Cloudflare Worker — your deployment, your data.
 - **Separate signing secret** — set `SIGNING_SECRET` in production so image URL signing doesn't share the API key
 - **MCP connector secret** — if using Claude.ai connectors, the secret is in the URL path. Use a long random string.
 - **CORS origin** — set `DASHBOARD_ALLOWED_ORIGIN` to restrict which domains can call the API
-- **Gemini API key** — this is sent to Google's API for embeddings. Treat it as a secret.
+- **Workers AI binding** — embeddings stay on the Cloudflare account through a native binding; there is no model API key to expose.
 - **Neon connection string** — if using Postgres, the connection string contains credentials. Never commit it — use `wrangler secret` or Hyperdrive.
 
 ### Rate limiting

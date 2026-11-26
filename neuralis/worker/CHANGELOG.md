@@ -6,6 +6,18 @@ All notable changes to the Neuralis OS worker. Previously released as Resonant M
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Provider-independent cognition** — text and multimodal embeddings now use the native Cloudflare Workers AI binding with 768-dimensional EmbeddingGemma 2; no external Gemini/API subscription is required.
+- **Runtime-authored generation queue** — durable BL/GPT-targeted jobs can only be claimed by their authenticated runtime family and completed by the exact runtime tag that claimed them (`0019`).
+- **Failure-proof memory vectorization** — cognitive rows remain authoritative when AI or Vectorize is temporarily unavailable; text vectors wait in a durable heartbeat retry queue (`0020`).
+
+### Changed
+
+- The always-loaded core now includes runtime identity plus generation claim/complete alongside the live memory tools. The complete MCP surface remains available at `/mcp` and the GPT connector path.
+
 ## [4.1.2] - 2026-09-09
 
 ### Fixed

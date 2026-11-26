@@ -6,7 +6,7 @@
  * /ATTRIBUTION.md). Adapted for this house:
  *  - `who` ledgers (one per companion slug, plus 'shared') in place of the donor's
  *    entity_scope, matching the personality engine's convention.
- *  - Gemini embeddings via the shared utils path; Vectorize/pgvector matches
+ *  - Workers AI embeddings via the shared utils path; Vectorize/pgvector matches
  *    are post-filtered on metadata (this index has no metadata filters).
  *  - Extraction scans Neuralis feelings + observations + journals.
  *  - Curriculum tracks rewritten for a multi-companion house.

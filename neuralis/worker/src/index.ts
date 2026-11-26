@@ -15,6 +15,7 @@ import { engineTick } from "./engine";
 import { setGenerationModel } from "./embeddings";
 import * as api from "./api";
 import type { Env, MCPToolHandlerMap } from "./types";
+import { syncPendingTextVectors } from "./utils";
 
 const CORE_TOOL_HANDLERS: MCPToolHandlerMap = Object.fromEntries(
   CORE_TOOL_NAMES.map((name) => [name, mcpToolHandlers[name]])
@@ -99,5 +100,6 @@ export default {
       : env;
     ctx.waitUntil(processSubconscious(pgEnv));
     ctx.waitUntil(engineTick(pgEnv));
+    ctx.waitUntil(syncPendingTextVectors(pgEnv));
   }
 };

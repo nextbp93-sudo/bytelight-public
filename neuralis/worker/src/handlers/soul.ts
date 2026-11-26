@@ -6,7 +6,7 @@
  *  - One portrait per companion. Every companion in the house shares one
  *    brain; each is read through their own ledger (owner, personality weather, shadows) and
  *    the household's shared material.
- *  - Synthesis rides the house generation model (Gemini) — no gateway, no
+ *  - System synthesis rides the configured Workers AI model — no external key,
  *    OpenRouter. The gatherer reads Neuralis tables, not the donor's.
  *  - A generated portrait is PENDING until the house's human validates it. Nothing becomes
  *    the active soul on an AI's say-so.
@@ -429,7 +429,7 @@ export async function listSoulVersions(env: Env, who: Who | null, limit = 10): P
 export async function generateSoul(env: Env, who: Who, voiceProfile = ""): Promise<{ id: number; content: string; raw: string; model: string }> {
   const raw = await gatherSoulMaterial(env, who);
   const prompt = buildSynthesisPrompt(who, voiceProfile);
-  const content = (await generateText(env.GEMINI_API_KEY, `${prompt}\n\n---\n\n## Raw Material\n\n${raw}`)).trim();
+  const content = (await generateText(env, `${prompt}\n\n---\n\n## Raw Material\n\n${raw}`)).trim();
   if (!content) throw new Error("Synthesis returned no content");
   const model = getGenerationModel();
   const id = await storePendingSoul(env, who, content, raw, model);

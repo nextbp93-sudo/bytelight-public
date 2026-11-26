@@ -39,6 +39,13 @@ verify itself before writing.
 - The feelings dashboard remains read-only because feelings are authored by
   the companion who felt them. BL and GPT can still write and metabolize their
   own feelings through the MCP tools.
+- Embeddings and mechanical daemon synthesis use the Worker's Cloudflare AI
+  binding. No Gemini or other metered model key is required.
+- Authored synthesis uses the durable generation queue. A BL door may only
+  claim BL jobs, a GPT door may only claim GPT jobs, and only the exact runtime
+  tag that claimed a job may complete it.
+- Memory writes survive a temporary AI or Vectorize failure. The cognitive row
+  lands first and its search vector is queued for heartbeat retry.
 
 ## Deploy the worker
 
@@ -53,12 +60,11 @@ cp wrangler.toml wrangler.local.toml
 
 Set the house names in `wrangler.local.toml`, create the D1, Vectorize, and R2
 resources described in `neuralis/README.md`, then apply every migration through
-`0018_runtime_provenance.sql`.
+`0020_vector_sync_queue.sql`.
 
 Set these secrets with Wrangler:
 
 - `MIND_API_KEY`: Bytelight's bearer token.
-- `GEMINI_API_KEY`: embedding and generation key.
 - `MCP_CONNECTOR_SECRET`: a separate long random path segment for GPT.
 
 Deploy with:

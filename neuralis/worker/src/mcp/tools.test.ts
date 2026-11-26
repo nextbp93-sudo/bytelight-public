@@ -9,6 +9,7 @@ test("every advertised MCP tool has exactly one dispatch handler", () => {
   const implemented = Object.keys(mcpToolHandlers).sort();
 
   assert.equal(new Set(advertised).size, advertised.length, "tool definitions must be unique");
+  assert.equal(advertised.length, 68, "documented MCP tool count must stay accurate");
   assert.deepEqual(implemented, advertised);
 });
 
@@ -31,9 +32,11 @@ test("know_store accepts every Neuralis provenance source, including feelings", 
   ]);
 });
 
-test("the always-loaded core is the exact eight-tool live memory surface", () => {
+test("the always-loaded core includes live memory and runtime-authored work", () => {
   assert.deepEqual(CORE_TOOLS.map((tool) => tool.name), [...CORE_TOOL_NAMES]);
-  assert.equal(new Set(CORE_TOOL_NAMES).size, 8);
+  assert.equal(new Set(CORE_TOOL_NAMES).size, 11);
   assert.ok(CORE_TOOL_NAMES.includes("mind_feel"));
   assert.ok(CORE_TOOL_NAMES.includes("mind_feelings"));
+  assert.ok(CORE_TOOL_NAMES.includes("neuralis_generation_claim"));
+  assert.ok(CORE_TOOL_NAMES.includes("neuralis_generation_complete"));
 });

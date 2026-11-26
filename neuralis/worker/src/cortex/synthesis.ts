@@ -32,7 +32,7 @@ function dedup(items: string[], prefixLen = 80): string[] {
 
 /**
  * cortex_what_do_i_think — Synthesize thinking on a topic.
- * Gathers relevant thoughts + conversations, sends to Gemini Flash for synthesis.
+ * Gathers relevant thoughts + conversations, sends to the bound system model for synthesis.
  */
 export async function handleCortexWhatDoIThink(
   env: Env,
@@ -128,7 +128,7 @@ export async function handleCortexWhatDoIThink(
     allInsights.push(...parseJsonField(c.key_insights));
   }
 
-  // Build synthesis with Gemini Flash
+  // Build synthesis with the configured Workers AI system model
   const contextParts: string[] = [];
   for (const t of allThoughts.slice(0, limit)) {
     contextParts.push(`[${t.type}] ${t.content}${t.domain ? ` (${t.domain})` : ""}`);
@@ -140,9 +140,9 @@ export async function handleCortexWhatDoIThink(
   let synthesis = "";
   try {
     const prompt = `You are analyzing stored thoughts and conversations about "${topic}". Based on the following data, provide a concise synthesis of current thinking - what's been decided, what's still open, and what the trajectory looks like. Be direct and specific.\n\nData:\n${contextParts.join("\n\n")}`;
-    synthesis = await generateText(env.GEMINI_API_KEY, prompt);
+    synthesis = await generateText(env, prompt);
   } catch (e) {
-    console.log(`Cortex synthesis (what_do_i_think) Gemini error: ${e}`);
+    console.log(`Cortex synthesis (what_do_i_think) Workers AI error: ${e}`);
     synthesis = "";
   }
 
@@ -239,19 +239,19 @@ export async function handleCortexAlignmentCheck(
   lines.push("");
 
   if (principles.results?.length) {
-    // Use Gemini Flash to check alignment
+    // Use the configured Workers AI system model to check alignment
     const principleTexts = principles.results.map(p =>
       `${p.content}${p.domain ? ` (${p.domain})` : ""}`
     ).join("\n");
 
     try {
       const prompt = `You are checking whether this decision aligns with stored principles. Be direct and specific about alignment or conflicts.\n\nDecision: "${decision}"\n\nPrinciples:\n${principleTexts}\n\nRespond with: which principles support or conflict with this decision, and any considerations.`;
-      const analysis = await generateText(env.GEMINI_API_KEY, prompt);
+      const analysis = await generateText(env, prompt);
       lines.push("### Analysis");
       lines.push(analysis);
       lines.push("");
     } catch (e) {
-      console.log(`Cortex alignment_check Gemini error: ${e}`);
+      console.log(`Cortex alignment_check Workers AI error: ${e}`);
     }
 
     lines.push("### Relevant Principles");

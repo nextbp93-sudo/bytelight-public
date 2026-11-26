@@ -1,31 +1,23 @@
 /**
- * Gemini Embedding 2 Provider
+ * Cloudflare Workers AI provider.
  *
- * 768 dimensions, L2 normalized, multimodal (text + images).
- * Used for semantic search across all memory types.
+ * EmbeddingGemma 2 preserves Neuralis' 768-dimensional multimodal vector
+ * space without an external API key. Text generation is reserved for
+ * mechanical background work; companion-authored work belongs to the tagged
+ * BL/GPT generation queue.
  */
 
-import { GoogleGenAI } from "@google/genai";
+import type { Env } from "./types";
 
-const MODEL = "gemini-embedding-2-preview";
-const DEFAULT_GENERATION_MODEL = "gemini-2.5-flash";
-const DIMENSIONS = 768;
+export const EMBEDDING_MODEL = "@cf/google/embeddinggemma-2";
+export const DEFAULT_GENERATION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+export const EMBEDDING_DIMENSIONS = 768;
 
-let client: GoogleGenAI | null = null;
-let clientKey: string | null = null;
 let resolvedGenerationModel: string = DEFAULT_GENERATION_MODEL;
-
-function getClient(apiKey: string): GoogleGenAI {
-  if (!client || clientKey !== apiKey) {
-    client = new GoogleGenAI({ apiKey });
-    clientKey = apiKey;
-  }
-  return client;
-}
 
 /** Call once at startup or first use to pick up env override. */
 export function setGenerationModel(model?: string) {
-  resolvedGenerationModel = model || DEFAULT_GENERATION_MODEL;
+  resolvedGenerationModel = model?.trim() || DEFAULT_GENERATION_MODEL;
 }
 
 /** The generation model currently in use (for audit trails). */
@@ -33,74 +25,82 @@ export function getGenerationModel(): string {
   return resolvedGenerationModel;
 }
 
-/**
- * L2 normalize a vector. Required for Gemini at 768d (not pre-normalized).
- */
+/** L2 normalize a vector so Vectorize cosine scores remain stable. */
 function l2Normalize(vec: number[]): number[] {
-  const magnitude = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
-  return magnitude > 0 ? vec.map((v) => v / magnitude) : vec;
+  const magnitude = Math.sqrt(vec.reduce((sum, value) => sum + value * value, 0));
+  return magnitude > 0 ? vec.map((value) => value / magnitude) : vec;
 }
 
-/**
- * Generate text via Gemini Flash — used for memory consolidation and reflection.
- */
-export async function generateText(
-  apiKey: string,
-  prompt: string
-): Promise<string> {
-  const ai = getClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: resolvedGenerationModel,
-    contents: prompt,
-  });
-  return response.text || "";
+function parseEmbedding(response: unknown): number[] {
+  const value = response as {
+    data?: Array<{ embedding?: number[] }> | number[][];
+    result?: { data?: Array<{ embedding?: number[] }> | number[][] };
+  };
+  const data = value?.data ?? value?.result?.data;
+  const first = Array.isArray(data) ? data[0] : undefined;
+  const embedding = Array.isArray(first)
+    ? first
+    : first && typeof first === "object" && Array.isArray(first.embedding)
+      ? first.embedding
+      : undefined;
+  if (!embedding || embedding.length !== EMBEDDING_DIMENSIONS) {
+    throw new Error(`Workers AI returned an invalid ${EMBEDDING_MODEL} embedding`);
+  }
+  return l2Normalize(embedding.map(Number));
 }
 
-/**
- * Generate a text embedding via Gemini Embedding 2.
- */
-export async function getEmbedding(
-  apiKey: string,
-  text: string
-): Promise<number[]> {
-  const ai = getClient(apiKey);
-  const response = await ai.models.embedContent({
-    model: MODEL,
-    contents: text,
-    config: { outputDimensionality: DIMENSIONS },
-  });
-  return l2Normalize(response.embeddings![0].values!);
+function parseGeneratedText(response: unknown): string {
+  if (typeof response === "string") return response.trim();
+  const value = response as {
+    response?: string;
+    result?: { response?: string; output_text?: string };
+    output_text?: string;
+  };
+  const generated = value?.response ?? value?.output_text
+    ?? value?.result?.response ?? value?.result?.output_text;
+  if (!generated?.trim()) throw new Error("Workers AI generation returned no text");
+  return generated.trim();
 }
 
-/**
- * Generate a multimodal embedding via Gemini Embedding 2.
- * Combines image + contextual text for richer semantic meaning.
- */
+/** Generate mechanical system text through the Worker's bound AI service. */
+export async function generateText(env: Env, prompt: string): Promise<string> {
+  const response = await env.AI.run(resolvedGenerationModel as keyof AiModels, {
+    messages: [{ role: "user", content: prompt }],
+    stream: false,
+  } as never);
+  return parseGeneratedText(response);
+}
+
+/** Generate a text embedding through the bound Workers AI service. */
+export async function getEmbedding(env: Env, text: string): Promise<number[]> {
+  const response = await env.AI.run(EMBEDDING_MODEL as keyof AiModels, {
+    input: [`task: clustering | query: ${text}`],
+    dimensions: EMBEDDING_DIMENSIONS,
+  } as never);
+  return parseEmbedding(response);
+}
+
+/** Generate a multimodal image + context embedding in the same vector space. */
 export async function getImageEmbedding(
-  apiKey: string,
+  env: Env,
   imageData: ArrayBuffer,
   mimeType: string,
-  contextText?: string
+  contextText?: string,
 ): Promise<number[]> {
-  const ai = getClient(apiKey);
-  // Chunk-based base64 encoding (spread operator blows stack on large arrays)
   const bytes = new Uint8Array(imageData);
   let binary = "";
   const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
   }
-  const base64 = btoa(binary);
-  const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
-  if (contextText) {
-    parts.push({ text: contextText });
-  }
-  parts.push({ inlineData: { data: base64, mimeType } });
+  const dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
+  const content: Array<Record<string, unknown>> = [];
+  if (contextText?.trim()) content.push({ type: "text", text: contextText.trim() });
+  content.push({ type: "image_url", image_url: { url: dataUrl } });
 
-  const response = await ai.models.embedContent({
-    model: MODEL,
-    contents: [{ role: "user", parts }] as any,
-    config: { outputDimensionality: DIMENSIONS },
-  });
-  return l2Normalize(response.embeddings![0].values!);
+  const response = await env.AI.run(EMBEDDING_MODEL as keyof AiModels, {
+    messages: [{ role: "user", content }],
+    dimensions: EMBEDDING_DIMENSIONS,
+  } as never);
+  return parseEmbedding(response);
 }

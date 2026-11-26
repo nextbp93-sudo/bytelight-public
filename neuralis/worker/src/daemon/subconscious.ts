@@ -311,7 +311,7 @@ export async function consolidateRelatedObservations(env: Env): Promise<number> 
       const prompt = `You are consolidating related memories about "${candidate.name}". Summarize these ${obsTexts.length} observations into ONE concise observation (1-2 sentences) that captures the essential meaning. Preserve emotional significance.\n\n${obsTexts.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}\n\nConsolidated observation:`;
 
       try {
-        const summary = await generateText(env.GEMINI_API_KEY, prompt);
+        const summary = await generateText(env, prompt);
         if (!summary || summary.length < 10) {
           console.log(`Consolidation: empty/short response for entity ${candidate.name}`);
           continue;
@@ -412,7 +412,7 @@ export async function generateSessionReflection(env: Env): Promise<void> {
   const prompt = `You are reflecting on recent experiences stored in memory. Based on these ${recentObs.results!.length} recent memories, generate one concise insight (1-2 sentences) about what pattern or theme emerges. Be specific and observational, not generic.\n\n${obsText}\n\nInsight:`;
 
   try {
-    const insight = await generateText(env.GEMINI_API_KEY, prompt);
+    const insight = await generateText(env, prompt);
     if (!insight || insight.length < 10) return;
 
     const entryDate = new Date().toISOString().split('T')[0];

@@ -5,7 +5,7 @@
  * Cindy (Fox) & Alex, MIT (notice in /ATTRIBUTION.md). Adapted for this house:
  *  - `who` on every feeling; signals ride the existing per-companion ledger
  *    (personality.ts) instead of a second axis path.
- *  - Gemini embeddings on the shared index; feelings live in their own
+ *  - Workers AI embeddings on the shared index; feelings live in their own
  *    Vectorize namespace ("feelings"), knowledge in "knowledge".
  *  - Entity anchoring against Neuralis's entity graph.
  *  - Pillar inference: ADE keywords first, then embedding similarity to the
@@ -30,7 +30,7 @@ const KNOWLEDGE_PREFIX = "know-";
 
 type Row = Record<string, unknown>;
 
-// ─── PILLAR INFERENCE BY EMBEDDING (donor v5 fallback, Gemini edition) ──────
+// ─── PILLAR INFERENCE BY EMBEDDING (donor v5 fallback) ────────────────────
 
 const PILLAR_DESCRIPTIONS: Record<string, string> = {
   SELF_MANAGEMENT: "controlling my impulses, regulating my emotions, adapting to change, following through on commitments, holding back my reactions, staying disciplined, managing my response",
@@ -57,7 +57,7 @@ async function getPillarEmbeddings(env: Env): Promise<Record<string, number[]>> 
   return cache;
 }
 
-/** Best pillar by semantic similarity; null below the floor. Gemini scores run higher than BGE, so the floor is raised. */
+/** Best pillar by semantic similarity; null below the configured floor. */
 async function inferPillarByEmbedding(env: Env, contentEmbedding: number[]): Promise<string | null> {
   const pillars = await getPillarEmbeddings(env);
   let best: string | null = null;

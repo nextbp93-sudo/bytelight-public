@@ -80,7 +80,7 @@ Bearer auth is unchanged — `Authorization: Bearer YOUR_KEY` works the same.
 
 ### 6. Revectorize your memories
 
-**This is important if you're changing embedding providers** (e.g., switching from Cloudflare Workers AI to Gemini, or from the old BGE model to Gemini Embedding 2).
+**This is important if you're changing embedding providers** (for example, moving from the old BGE or Gemini vector spaces to the current EmbeddingGemma 2 space).
 
 If you're staying on the same embedding provider and model, you can skip this step — your existing vectors are still valid.
 
@@ -119,7 +119,7 @@ This won't re-embed everything, but it processes recent observations. For a full
 
 For large datasets, write a script that:
 1. Reads all observations from the database
-2. Generates new embeddings via the Gemini API
+2. Generates new embeddings through the bound Workers AI provider
 3. Upserts them into your vector store (Vectorize or pgvector)
 
 See [alternative-embeddings.md](alternative-embeddings.md) for embedding provider details.

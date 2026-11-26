@@ -98,7 +98,7 @@ const BACKFILL_BATCH_SIZE = 20;
 
 /**
  * Backfill preset: classify ~20 default-context observations per fire.
- * Uses Gemini to assign context bucket + owner, logs to backfill_log.
+ * Uses the bound Workers AI system model to assign context bucket + owner, logs to backfill_log.
  */
 async function backfillContexts(env: Env): Promise<string> {
   const batch = await env.DB.prepare(`
@@ -117,9 +117,9 @@ async function backfillContexts(env: Env): Promise<string> {
     return synced > 0 ? `ok (nothing to backfill, ${synced} resynced)` : "ok (nothing to backfill)";
   }
 
-  // Single-call probe: verify Gemini is alive before burning 20 calls
+  // Single-call probe: verify Workers AI is alive before burning 20 calls
   try {
-    const probe = await generateText(env.GEMINI_API_KEY, "Reply with exactly one word: hello");
+    const probe = await generateText(env, "Reply with exactly one word: hello");
     console.log(`Backfill probe ok: "${probe.trim().slice(0, 50)}"`);
   } catch (e) {
     console.log(`Backfill probe FAILED — aborting batch: ${e}`);
@@ -151,7 +151,7 @@ Observation: ${obs.content}
 Reply with exactly two words: context owner. No punctuation, no explanation.`;
 
     try {
-      const response = await generateText(env.GEMINI_API_KEY, prompt);
+      const response = await generateText(env, prompt);
       // Strip markdown, punctuation, extra whitespace
       const cleaned = response.trim().toLowerCase().replace(/[`*_.,!?\-]/g, '').trim();
       // Find which bucket word appears in the response
@@ -172,7 +172,7 @@ Reply with exactly two words: context owner. No punctuation, no explanation.`;
       // Sync Vectorize metadata — re-embed + upsert with corrected context
       try {
         const vecId = `obs-${obs.entity_id}-${obs.id}`;
-        const embedding = await getEmbedding(env.GEMINI_API_KEY, `${obs.entity_name}: ${obs.content}`);
+        const embedding = await getEmbedding(env, `${obs.entity_name}: ${obs.content}`);
         await env.VECTORS.upsert([{
           id: vecId,
           values: embedding,
@@ -232,7 +232,7 @@ async function resyncVectorize(env: Env): Promise<number> {
     for (const row of unsynced.results || []) {
       try {
         const vecId = `obs-${row.entity_id}-${row.observation_id}`;
-        const embedding = await getEmbedding(env.GEMINI_API_KEY, `${row.entity_name}: ${row.content}`);
+        const embedding = await getEmbedding(env, `${row.entity_name}: ${row.content}`);
         await env.VECTORS.upsert([{
           id: vecId,
           values: embedding,

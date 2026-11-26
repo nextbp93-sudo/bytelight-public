@@ -25,7 +25,7 @@ Each folder has its own README with full detail. The worker README carries the c
 
 ### Worker (Backend)
 
-**63 MCP tools across four layers** — full catalog in [`worker/README.md`](worker/README.md):
+**68 MCP tools across four layers plus runtime operations** — full catalog in [`worker/README.md`](worker/README.md):
 
 | Layer | Tools | What lives there |
 |---|---|---|
@@ -34,7 +34,7 @@ Each folder has its own README with full detail. The worker README carries the c
 | **Knowledge** | 9 | Abstracted lessons with usage-weighted retrieval, heat decay, contradiction kill-signal, source linkage, curriculum practice sessions (NESTknow port) |
 | **Soul** | 5 | Per-companion identity portraits gathered from the whole mind, synthesised, versioned, and validated by the human before they go active (NESTsoul port) |
 
-Backed by Cloudflare D1 (SQLite), Vectorize (semantic embeddings), and R2 (image storage). Gemini embeddings, 768-dim.
+Backed by Cloudflare D1 (SQLite), Vectorize (semantic embeddings), R2 (image storage), and a bound Cloudflare Workers AI service. EmbeddingGemma 2 keeps text and images in one 768-dimensional space without an external model API key.
 
 ### Dashboard (Frontend)
 
@@ -83,7 +83,6 @@ npx wrangler r2 bucket create neuralis-images
 
 # Set secrets
 npx wrangler secret put MIND_API_KEY
-npx wrangler secret put GEMINI_API_KEY
 
 # Deploy
 npx wrangler deploy
@@ -124,7 +123,7 @@ Register the worker as an MCP server — Claude Code via a Bearer token, or Clau
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `MIND_API_KEY` | Yes | Bearer token for API + MCP auth |
-| `GEMINI_API_KEY` | Yes | Google Gemini API key (embeddings + daemon) |
+| Cloudflare AI binding | Yes | Configured as `AI` in `wrangler.toml`; no separate model API key |
 | `DASHBOARD_ALLOWED_ORIGIN` | For dashboard | CORS origin URL |
 | `MCP_CONNECTOR_SECRET` | Optional | Secret path segment for MCP connector |
 | `SIGNING_SECRET` | Optional | HMAC signing for image URLs (falls back to MIND_API_KEY) |

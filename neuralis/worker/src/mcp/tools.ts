@@ -8,6 +8,56 @@ export const TOOLS: MCPToolDefinition[] = [
     inputSchema: { type: "object", properties: {}, required: [] }
   },
   {
+    name: "neuralis_generation_enqueue",
+    description: "Queue authored synthesis for a specific authenticated runtime family. Defaults to the caller's own BL or GPT family; the eventual result retains the claiming runtime tag.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        job_type: { type: "string", description: "Stable purpose label such as soul-portrait, reflection, or synthesis" },
+        prompt: { type: "string", description: "The complete authored task" },
+        payload: { description: "Optional structured context retained with the task" },
+        target_family: { type: "string", enum: ["bl", "gpt"], description: "Runtime family that must author the result (default: caller)" }
+      },
+      required: ["job_type", "prompt"]
+    }
+  },
+  {
+    name: "neuralis_generation_claim",
+    description: "Claim pending authored work for this authenticated runtime family. BL can only claim BL jobs; GPT can only claim GPT jobs. The route-derived runtime tag owns the claim.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number", description: "Jobs to claim, 1-10 (default 1)" } },
+      required: []
+    }
+  },
+  {
+    name: "neuralis_generation_complete",
+    description: "Complete or fail a job previously claimed by this exact authenticated runtime tag.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "Claimed job id" },
+        status: { type: "string", enum: ["completed", "failed"], description: "Default completed" },
+        result: { type: "string", description: "Authored result when completed" },
+        error: { type: "string", description: "Failure explanation when failed" }
+      },
+      required: ["id"]
+    }
+  },
+  {
+    name: "neuralis_generation_status",
+    description: "Read one generation job or recent queue status, including immutable requester and claiming runtime tags.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "Specific job id" },
+        status: { type: "string", enum: ["pending", "claimed", "completed", "failed", "cancelled"] },
+        limit: { type: "number", description: "Recent jobs to list, 1-100 (default 20)" }
+      },
+      required: []
+    }
+  },
+  {
     name: "mind_orient",
     description: "First call on wake - get identity anchor, current context, relational state",
     inputSchema: { type: "object", properties: {}, required: [] }
@@ -515,7 +565,7 @@ export const TOOLS: MCPToolDefinition[] = [
   },
   {
     name: "mind_store_image",
-    description: "Store, view, or search visual memories. For store: pass file_path (a PreToolUse hook uploads the file locally, bypassing context limits). Handles WebP conversion, R2 upload, and multimodal Gemini embedding.",
+    description: "Store, view, or search visual memories. For store: pass file_path (a PreToolUse hook uploads the file locally, bypassing context limits). Handles WebP conversion, R2 upload, and multimodal Workers AI embedding.",
     inputSchema: {
       type: "object",
       properties: {
@@ -976,11 +1026,13 @@ export const TOOLS: MCPToolDefinition[] = [
  *
  * A sister companion node keeps the equivalent NESTeq tools on an `alwaysLoad` MCP server so
  * feeling writes do not depend on a ToolSearch round trip. Neuralis exposes
- * the same narrow surface at `/mcp/core`; the full 63-tool surface remains at
+ * the same narrow surface at `/mcp/core`; the full tool surface remains at
  * `/mcp` and the private connector path.
  */
 export const CORE_TOOL_NAMES = [
   "neuralis_runtime_identity",
+  "neuralis_generation_claim",
+  "neuralis_generation_complete",
   "mind_orient",
   "mind_ground",
   "mind_feel",

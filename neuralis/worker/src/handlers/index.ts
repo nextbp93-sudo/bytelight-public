@@ -16,9 +16,19 @@ import { handleSoulGather, handleSoulGenerate, handleSoulRead, handleSoulValidat
 import { handleMindFeel, handleMindFeelings, type MindFeelParams } from "./feelings";
 import { cortexToolHandlers } from "../cortex";
 import { runtimeIdentity } from "../provenance";
+import {
+  handleGenerationClaim,
+  handleGenerationComplete,
+  handleGenerationEnqueue,
+  handleGenerationStatus,
+} from "./generation";
 
 export const mcpToolHandlers: MCPToolHandlerMap = {
   neuralis_runtime_identity: async (env) => runtimeIdentity(env),
+  neuralis_generation_enqueue: async (env, params) => handleGenerationEnqueue(env, params),
+  neuralis_generation_claim: async (env, params) => handleGenerationClaim(env, params),
+  neuralis_generation_complete: async (env, params) => handleGenerationComplete(env, params),
+  neuralis_generation_status: async (env, params) => handleGenerationStatus(env, params),
   mind_orient: async (env) => handleMindOrient(env),
   mind_ground: async (env) => handleMindGround(env),
   mind_thread: async (env, params) => handleMindThread(env, params),

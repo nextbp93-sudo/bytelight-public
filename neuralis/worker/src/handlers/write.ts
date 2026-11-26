@@ -1,5 +1,5 @@
 import type { Env } from "../types";
-import { normalizeText, generateId, getEmbedding, searchVectors } from "../utils";
+import { normalizeText, generateId, getEmbedding, searchVectors, upsertTextVector } from "../utils";
 import { CONTRADICTION_SIMILARITY_THRESHOLD, AUTO_SUPERSEDE_THRESHOLD, COMPANION_SLUGS, WHO_VALUES, CONTEXT_BUCKETS, HUMAN_CONTEXT, HOUSE_HUMAN_NAME, listOr } from "../config";
 import { emitAxisSignal, normalizeWho } from "./personality";
 
@@ -178,18 +178,16 @@ async function writeEntity(env: Env, params: Record<string, unknown>): Promise<s
     `SELECT id FROM entities WHERE name = ?`
   ).bind(name).first();
 
+  let pendingVectors = 0;
+
   if (entity) {
-    try {
-      const entityText = `${name} is a ${entity_type}. Context: ${context}`;
-      const entityEmbedding = await getEmbedding(env, entityText);
-      await env.VECTORS.upsert([{
-        id: `entity-${entity.id}`,
-        values: entityEmbedding,
-        metadata: { source: "entity", name, entity_type, context, created_at: new Date().toISOString() }
-      }]);
-    } catch (e) {
-      console.log(`Failed to vectorize entity ${name}: ${e}`);
-    }
+    if (!await upsertTextVector(env, {
+      id: `entity-${entity.id}`,
+      text: `${name} is a ${entity_type}. Context: ${context}`,
+      metadata: { source: "entity", name, entity_type, context, created_at: new Date().toISOString() },
+      sourceType: "entity",
+      sourceId: entity.id as string | number,
+    })) pendingVectors++;
   }
 
   if (entity && observations.length) {
@@ -207,21 +205,24 @@ async function writeEntity(env: Env, params: Record<string, unknown>): Promise<s
         source: "observation", observationId: result.meta.last_row_id as number,
       });
 
-      const obsId = `obs-${entity.id}-${result.meta.last_row_id}`;
-      const embedding = await getEmbedding(env, `${name}: ${obs}`);
-      await env.VECTORS.upsert([{
-        id: obsId,
-        values: embedding,
+      if (!await upsertTextVector(env, {
+        id: `obs-${entity.id}-${result.meta.last_row_id}`,
+        text: `${name}: ${obs}`,
         metadata: {
           source: "observation", entity_name: name, entity: name, content: obs, context,
           weight: (params.weight as string) || "medium", certainty: (params.certainty as string) || "believed",
           observation_source: (params.source as string) || "conversation", added_at: new Date().toISOString()
-        }
-      }]);
+        },
+        sourceType: "observation",
+        sourceId: result.meta.last_row_id as string | number,
+      })) pendingVectors++;
     }
   }
 
-  return `Entity '${name}' created/updated with ${observations.length} observations (vectorized)`;
+  const vectorStatus = pendingVectors
+    ? `${pendingVectors} vector sidecar${pendingVectors === 1 ? "" : "s"} queued for retry`
+    : "vectorized";
+  return `Entity '${name}' created/updated with ${observations.length} observations (${vectorStatus})`;
 }
 
 async function detectContradictions(
@@ -289,6 +290,7 @@ async function writeObservation(env: Env, params: Record<string, unknown>): Prom
   }
 
   let totalSuperseded = 0;
+  let totalPendingVectors = 0;
 
   for (const obs of observations) {
     // Phase 2: Check for contradictions before writing
@@ -309,17 +311,18 @@ async function writeObservation(env: Env, params: Record<string, unknown>): Prom
       source: "observation", observationId: newRowId as number,
     });
 
-    const obsId = `obs-${entity!.id}-${newRowId}`;
-    const embedding = await getEmbedding(env, `${entity_name}: ${obs}`);
-    await env.VECTORS.upsert([{
-      id: obsId,
-      values: embedding,
+    const vectorized = await upsertTextVector(env, {
+      id: `obs-${entity!.id}-${newRowId}`,
+      text: `${entity_name}: ${obs}`,
       metadata: {
         source: "observation", entity: entity_name, content: obs, context,
         weight: (params.weight as string) || "medium", certainty: (params.certainty as string) || "believed",
         observation_source: (params.source as string) || "conversation", added_at: new Date().toISOString()
-      }
-    }]);
+      },
+      sourceType: "observation",
+      sourceId: newRowId as string | number,
+    });
+    if (!vectorized) totalPendingVectors++;
 
     // Auto-supersede highly similar observations
     for (const old of contradictions) {
@@ -337,7 +340,8 @@ async function writeObservation(env: Env, params: Record<string, unknown>): Prom
     }
   }
 
-  let msg = `Added ${observations.length} observations to '${entity_name}' (vectorized)`;
+  let msg = `Added ${observations.length} observations to '${entity_name}'`;
+  msg += totalPendingVectors ? ` (${totalPendingVectors} vector sidecar${totalPendingVectors === 1 ? "" : "s"} queued for retry)` : " (vectorized)";
   if (totalSuperseded > 0) {
     msg += `. Superseded ${totalSuperseded} older observation${totalSuperseded > 1 ? 's' : ''}.`;
   }
@@ -384,18 +388,20 @@ async function writeJournal(env: Env, params: Record<string, unknown>): Promise<
     source: "journal", journalId: result.meta.last_row_id as number,
   });
 
-  const journalId = `journal-${result.meta.last_row_id}`;
-  const embedding = await getEmbedding(env, entry);
   const journalMetadata: Record<string, string> = {
     source: "journal", title: entry_date, content: entry, added_at: new Date().toISOString()
   };
   if (emotion) journalMetadata.emotion = normalizeText(emotion) || emotion;
 
-  await env.VECTORS.upsert([{
-    id: journalId, values: embedding, metadata: journalMetadata
-  }]);
+  const vectorized = await upsertTextVector(env, {
+    id: `journal-${result.meta.last_row_id}`,
+    text: entry,
+    metadata: journalMetadata,
+    sourceType: "journal",
+    sourceId: result.meta.last_row_id as string | number,
+  });
 
-  return `Journal entry recorded for ${entry_date} (vectorized)`;
+  return `Journal entry recorded for ${entry_date} (${vectorized ? "vectorized" : "vector sidecar queued for retry"})`;
 }
 
 export async function handleMindFeelToward(env: Env, params: Record<string, unknown>): Promise<string> {
