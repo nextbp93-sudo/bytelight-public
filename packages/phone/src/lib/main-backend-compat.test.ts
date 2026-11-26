@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadStickers, resolveStickerRef, getStickerPacks } from '../bytelight/stickers';
 import { prepareChatText } from './chat-text';
-import { normalizeCompanionRow } from './companion-row';
+import { isDormantCompanionSlot, normalizeCompanionRow } from './companion-row';
+import { setState } from '../bytelight/store';
 
 await test("main's flat packs-with-stickers rows fold into packs, resolvable by name or alias in any case", async () => {
   const originalFetch = globalThis.fetch;
@@ -42,4 +43,32 @@ test("main's companion rows gain the slug/avatar_url fields the phone reads", ()
   const forkRow = normalizeCompanionRow({ id: 'x1', slug: 'companion-b', display_name: 'Companion B', avatar_url: '/a.png', color: '#111', emoji: '🖤' });
   assert.equal(forkRow.slug, 'companion-b', 'an explicit slug wins');
   assert.equal(forkRow.avatar_url, '/a.png');
+});
+
+test('a stock Companion B avatar does not turn an unused slot into a house member', () => {
+  setState({
+    profiles: {
+      'companion-b': { name: 'Companion B', emoji: '🔶', image: null },
+    },
+  });
+  try {
+    assert.equal(isDormantCompanionSlot({
+      id: 'companion-b',
+      display_name: 'Companion B',
+      avatar: '/api/files/seeded-stock-avatar',
+    }), true);
+
+    setState({
+      profiles: {
+        'companion-b': { name: 'Companion B', emoji: '🔶', image: '/api/files/chosen-photo' },
+      },
+    });
+    assert.equal(isDormantCompanionSlot({
+      id: 'companion-b',
+      display_name: 'Companion B',
+      avatar: '/api/files/seeded-stock-avatar',
+    }), false);
+  } finally {
+    setState({ profiles: null });
+  }
 });

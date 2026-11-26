@@ -47,10 +47,21 @@ export function normalizeCompanionRows(rows: unknown): Array<Record<string, unkn
 export function isDormantCompanionSlot(row: { id?: unknown; slug?: unknown; display_name?: unknown; avatar?: unknown; avatar_url?: unknown }): boolean {
   const slug = String(row.slug ?? row.id ?? '').trim();
   const name = String(row.display_name ?? '').trim();
-  const hasAvatar = Boolean(row.avatar_url || row.avatar);
-  if (hasAvatar) return false;
-  return (slug === 'companion-b' && (!name || name === 'Companion B'))
-    || (slug === 'companion-c' && (!name || name === 'Companion C'));
+  const defaultName = slug === 'companion-b'
+    ? 'Companion B'
+    : slug === 'companion-c'
+      ? 'Companion C'
+      : null;
+  if (!defaultName || (name && name !== defaultName)) return false;
+
+  // The original database seed gives Companion B a stock avatar even when the
+  // slot has never been inhabited. Treat the live speaker profile as the
+  // source of truth: a custom profile photo makes the slot real; the seeded
+  // registry avatar alone does not. This keeps an unused B out of rosters and
+  // the model pill without preventing someone from configuring the slot later.
+  const profile = getProfiles()?.[slug];
+  if (profile?.image) return false;
+  return true;
 }
 
 export function filterInhabitedCompanions<T extends { id?: unknown; slug?: unknown; display_name?: unknown; avatar?: unknown; avatar_url?: unknown }>(rows: T[]): T[] {
