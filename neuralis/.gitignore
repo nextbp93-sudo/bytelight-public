@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+.DS_Store
+
+# Private, per-house config (never commit)
+worker/wrangler.neuralis-os.toml
+worker/wrangler.local.toml
+dashboard/.env.local

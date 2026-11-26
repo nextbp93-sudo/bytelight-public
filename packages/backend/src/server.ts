@@ -11,6 +11,7 @@ import { loadConfig, PROJECT_ROOT } from './config.js';
 import { initDb, deleteExpiredSessions } from './services/db.js';
 import { seedDefaultBlocks, ensureCompanionBlocks } from './services/memory-blocks.js';
 import { getSecret } from './services/secrets.js';
+import { syncNeuralisManagedServer } from './services/neuralis.js';
 import { loadVectorCache } from './services/vector-cache.js';
 import { createWebSocketServer, setVoiceService, setGatewayServices, registry, recoverCutOffTurns } from './services/ws.js';
 import { holdTurnLeases } from './services/db/turn-leases.js';
@@ -65,6 +66,11 @@ console.log('Initializing database...');
 const db = initDb(DB_PATH);
 deleteExpiredSessions();
 loadVectorCache();
+// A configured Neuralis brain belongs on every runtime's complete tool belt.
+// Idempotent and non-fatal: an unconfigured house simply has no row to sync.
+try { syncNeuralisManagedServer(); } catch (error) {
+  console.warn('[Neuralis] MCP registration skipped:', error instanceof Error ? error.message : error);
+}
 // Self-knowledge semantic index (Wave 2, Slice 3) — embed any entries added
 // while the process was down so manual semantic search is ready. Non-fatal on
 // failure; it only backs an on-demand search endpoint, nothing on the hot path.

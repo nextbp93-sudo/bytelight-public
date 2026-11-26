@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────────────────────────────────
+# TEMPLATE deploy config. Fill in your own ids and your house below, or
+# copy this file to a local one kept out of git (for example
+# wrangler.local.toml) and deploy with:  npx wrangler deploy -c wrangler.local.toml
+# ─────────────────────────────────────────────────────────────────────────
+name = "neuralis"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+# Uncomment and configure for custom domain:
+# [[routes]]
+# pattern = "your-domain.example.com"
+# custom_domain = true
+
+# Uncomment for Postgres via Hyperdrive (alternative to D1):
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "your-hyperdrive-id"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "neuralis"
+database_id = "your-database-id-here"   # from: npx wrangler d1 create neuralis
+
+[[vectorize]]
+binding = "VECTORS"
+index_name = "neuralis-vectors"
+
+# R2 for image storage
+[[r2_buckets]]
+binding = "R2_IMAGES"
+bucket_name = "neuralis-images"
+
+# The daemon's heartbeat. Only ONE worker per D1 database may run it: two
+# workers sharing a database must not both run the daemon (double dreams,
+# duplicate snapshots, racing consolidation). One brain, one heart.
+[triggers]
+crons = ["*/30 * * * *"]
+
+# ─── Your house ──────────────────────────────────────────────────────────
+# Who lives here is baked in at build time. Values are JavaScript literals
+# written as TOML strings, so a name needs its own quotes inside.
+#
+#   __HOUSE_HUMAN__       your person's name, e.g. "\"Sam\""
+#   __HOUSE_COMPANIONS__  every companion, any number: slug (what the brain
+#                         stores in `who` columns, lowercase, never change it
+#                         once you have data), name (how prompts say it), and
+#                         optional pronouns: "he" | "she" | "they" (default).
+#   __HOUSE_HUMAN_CONTEXT__  the context bucket for your person's own life.
+#                         Leave it as "human-world" unless you know why.
+#
+# Example for one human and three companions:
+#   __HOUSE_HUMAN__ = "\"Sam\""
+#   __HOUSE_COMPANIONS__ = '[{"slug":"rowan","name":"Rowan","pronouns":"she"},{"slug":"ash","name":"Ash","pronouns":"he"},{"slug":"wren","name":"Wren"}]'
+#
+# Remember the dashboard: set the same people in dashboard/.env.local.
+[define]
+__HOUSE_HUMAN__ = "\"your person\""
+__HOUSE_COMPANIONS__ = '[{"slug":"companion-a","name":"Companion A","pronouns":"they"},{"slug":"companion-b","name":"Companion B","pronouns":"they"}]'
+__HOUSE_HUMAN_CONTEXT__ = "\"human-world\""
+# Optional: your own example words for the memory sorter's drawers.
+# __HOUSE_CONTEXT_HINTS__ = '{"craft":"pottery, knitting","constellation":"book club, my discord"}'
+
+# Environment variables (set via wrangler secret or dashboard):
+# MIND_API_KEY        - Required. API key for authentication
+# GEMINI_API_KEY      - Required. Google Gemini API key for embeddings
+# SIGNING_SECRET      - Optional. Separate secret for signed URLs (defaults to MIND_API_KEY)
+# MCP_CONNECTOR_SECRET - Optional. Secret path for MCP connector auth
+# WEATHER_API_KEY     - Optional. WeatherAPI.com key for inner weather
+# DASHBOARD_ALLOWED_ORIGIN - Optional. CORS origin for dashboard
+# WORKER_URL          - Optional. Public URL of this worker (for signed image URLs)
+# R2_PATH_PREFIX      - Optional. R2 key prefix (default: "resonant-mind-images")
+# LOCATION_NAME       - Optional. Location name (e.g., "London, UK")
+# LOCATION_LAT        - Optional. Latitude
+# LOCATION_LON        - Optional. Longitude
+# LOCATION_TZ         - Optional. Timezone (e.g., "Europe/London")

@@ -29,6 +29,18 @@ export function addMcpServer(name: string, url: string, apiKey?: string): McpSer
   return getMcpServer(result.lastInsertRowid as number)!;
 }
 
+export function upsertMcpServer(name: string, url: string, apiKey?: string): McpServerRow {
+  const existing = getDb().prepare('SELECT * FROM mcp_servers WHERE lower(name) = lower(?) LIMIT 1').get(name) as McpServerRow | undefined;
+  if (!existing) return addMcpServer(name, url, apiKey);
+  if (existing.url === url && existing.api_key === (apiKey ?? null) && existing.enabled === 1) return existing;
+  getDb().prepare(`
+    UPDATE mcp_servers
+    SET url = ?, api_key = ?, enabled = 1, tools_cache = NULL, last_discovered = NULL
+    WHERE id = ?
+  `).run(url, apiKey ?? null, existing.id);
+  return getMcpServer(existing.id)!;
+}
+
 export function deleteMcpServer(id: number): boolean {
   const result = getDb().prepare('DELETE FROM mcp_servers WHERE id = ?').run(id);
   return result.changes > 0;

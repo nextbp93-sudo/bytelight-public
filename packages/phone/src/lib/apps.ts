@@ -2,7 +2,7 @@
 // Consumed by the home-screen dock and the app drawer.
 
 import type { LucideIcon } from 'lucide-react';
-import { Library, MessageSquare, StickyNote, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, Brain, Paintbrush, Box, FolderOpen, BookOpen, Inbox, Mail, ScanSearch, CloudSun, Telescope, Music, Gamepad2, TreePine, Archive } from 'lucide-react';
+import { Library, MessageSquare, StickyNote, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, Brain, BrainCircuit, Paintbrush, Box, FolderOpen, BookOpen, Inbox, Mail, ScanSearch, CloudSun, Telescope, Music, Gamepad2, TreePine, Archive } from 'lucide-react';
 import { SPOTIFY_APP_ID } from './spotify';
 import type { OsScreen } from '../App';
 
@@ -31,6 +31,7 @@ const APP_DEFS: AppDef[] = [
   { id: 'canvas', name: 'Canvas', icon: FileText, category: 'Companion', kind: 'screen', screen: 'canvas' },
   { id: 'companions', name: 'Companions', icon: Users, category: 'Companion', kind: 'screen', screen: 'companions' },
   { id: 'memory', name: 'Memory', icon: Brain, category: 'Companion', kind: 'screen', screen: 'memory' },
+  { id: 'neuralis', name: 'Neuralis', icon: BrainCircuit, category: 'Companion', kind: 'screen', screen: 'neuralis' },
   { id: 'journal', name: 'Journal', icon: BookOpen, category: 'Companion', kind: 'screen', screen: 'journal' },
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'library', name: 'Reading Nook', icon: Library, category: 'Companion', kind: 'screen', screen: 'library' },

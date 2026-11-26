@@ -265,15 +265,15 @@ export function CortexUrl({ themeConfig, themeMode, onSaved }: Props) {
           Self-Knowledge still work. Changes take effect immediately.
         </p>
         <p className={cn('text-[10px] leading-relaxed', colors.textMuted)}>
-          Don't have one? Deploy <span className="font-mono">workers/cortex</span> —
-          its readme is four steps. Both fields below belong to it: the address it
-          answers on, and the token it refuses to serve without.
+          The complete source now lives in <span className="font-mono">neuralis/</span>.
+          These two fields connect every layer: Mind, Cortex, Knowledge, Soul,
+          the heartbeat engine, and the runtime provenance ledger.
         </p>
 
         <div className="space-y-1">
           <p className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Worker URL</p>
           <SecretRow
-            secret="cortex_mcp_url"
+            secret="mind_api_url"
             placeholder="https://….workers.dev"
             themeConfig={themeConfig}
             themeMode={themeMode}
@@ -284,7 +284,7 @@ export function CortexUrl({ themeConfig, themeMode, onSaved }: Props) {
         <div className="space-y-1">
           <p className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Worker token</p>
           <SecretRow
-            secret="cortex_auth_token"
+            secret="mind_api_key"
             placeholder="the CORTEX_AUTH_TOKEN you set on the worker"
             masked
             themeConfig={themeConfig}

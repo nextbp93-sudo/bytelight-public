@@ -52,6 +52,7 @@ function toDbCompanion(c: Record<string, unknown>): DBCompanion {
   return { id, slug, display_name, avatar_url, color, emoji };
 }
 import { MemoryApp } from './components/MemoryApp';
+import { NeuralisApp } from './components/NeuralisApp';
 import { ArtifactsApp } from './components/ArtifactsApp';
 import { FilesApp } from './components/FilesApp';
 import { InboxApp } from './components/InboxApp';
@@ -243,6 +244,7 @@ export type OsScreen =
   | 'xray'
   | 'companions'
   | 'memory'
+  | 'neuralis'
   | 'journal'
   | 'letters'
   | 'fieldnotes'
@@ -1904,6 +1906,14 @@ export default function App() {
         {osState === 'memory' && (
           <MemoryApp
             key="memory"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'neuralis' && (
+          <NeuralisApp
+            key="neuralis"
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}

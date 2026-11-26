@@ -58,6 +58,7 @@ import secretsRouter from './secrets.js';
 import cardsRouter from './cards.js';
 import battleshipRouter from './battleship.js';
 import drawerRouter from './drawer.js';
+import { createNeuralisRoutes } from './neuralis-routes.js';
 
 // ============================================================================
 // API Router Composition
@@ -150,6 +151,9 @@ router.use(createPushRoutes());
 router.use(createOrchestratorRoutes());
 router.use(createDiscordRoutes());
 router.use(createMindRoutes());
+// Neuralis is the full shared cognitive layer (mind, cortex, knowledge, soul)
+// with BL/GPT route provenance. It remains separate from ACE continuity.
+router.use(createNeuralisRoutes());
 // Memory Blocks — authenticated Letta-style core-memory API powering the
 // Settings → Memory panel (Slice 2, ported from Keystone). Mounted beside
 // createMindRoutes, after authMiddleware above.

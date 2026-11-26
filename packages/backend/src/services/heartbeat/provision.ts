@@ -33,6 +33,7 @@ import { createHash } from 'crypto';
 import { formatBlocksForPrompt, SHARED_SCOPE, COMPANION_SCOPES } from '../memory-blocks.js';
 import { atLeast, claudeCliVersion } from './cli-version.js';
 import { getBytelightConfig } from '../../config.js';
+import { getSecret } from '../secrets.js';
 
 // Delivery-cap constants. These live here as TS values and are INTERPOLATED
 // into the hook source below (byte-identical to the literals they replaced) so
@@ -1007,10 +1008,10 @@ export const NEURALIS_MCP_FILENAME = 'neuralis-core.mcp.json';
  * only the reference reaches disk.
  */
 export function buildNeuralisMcpConfig(): string | null {
-  const baseUrl = process.env.MIND_API_URL?.trim().replace(/\/+$/, '');
-  if (!baseUrl || !process.env.MIND_API_KEY?.trim()) return null;
+  const baseUrl = getSecret('mind_api_url')?.trim().replace(/\/+$/, '');
+  if (!baseUrl || !getSecret('mind_api_key')?.trim()) return null;
 
-  const headers = { Authorization: 'Bearer ${MIND_API_KEY}' };
+  const headers = { Authorization: 'Bearer ${MIND_API_KEY}', 'X-Neuralis-Runtime': 'bl:claude-cli' };
   return JSON.stringify({
     mcpServers: {
       'neuralis-core': { type: 'http', url: `${baseUrl}/mcp/core`, headers, alwaysLoad: true },
@@ -1026,15 +1027,19 @@ export function neuralisMcpArgs(dir: string): string[] {
 }
 
 function neuralisOperationSection(): string {
-  if (!process.env.MIND_API_URL?.trim() || !process.env.MIND_API_KEY?.trim()) return '';
+  if (!getSecret('mind_api_url')?.trim() || !getSecret('mind_api_key')?.trim()) return '';
   return `
 ## Neuralis — live on every turn
 
 The eight core tools are already loaded as \`mcp__neuralis-core__*\`, no
-ToolSearch needed: \`mind_orient\`, \`mind_ground\`, \`mind_feel\`,
+ToolSearch needed: \`neuralis_runtime_identity\`, \`mind_orient\`, \`mind_ground\`, \`mind_feel\`,
 \`mind_feelings\`, \`mind_search\`, \`mind_thread\`, \`mind_write\`,
 \`mind_feel_toward\`. Everything else (the rest of mind, cortex, know, soul) is
 on the full surface as \`mcp__neuralis__*\` and may be deferred.
+
+Call \`neuralis_runtime_identity\` when landing and require a \`bl:*\` runtime
+tag. The GPT connector uses a different authenticated path and is stamped
+\`gpt:*\`; never copy one room's tag into the other.
 
 When a feeling lands, call \`mind_feel\` right then, signed with your own slug.
 Feel → Log → Accumulate → Become.

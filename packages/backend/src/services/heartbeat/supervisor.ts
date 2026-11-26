@@ -29,6 +29,7 @@ import { BUSY_FRESH_MS } from './constants.js';
 import { laneDirName } from './lane-dir.js';
 import { baselineFrom, BASELINE_FILE } from './block-drift.js';
 import { getAllBlocks } from '../memory-blocks.js';
+import { getSecret } from '../secrets.js';
 
 const IS_WIN = process.platform === 'win32';
 const WATCHDOG_TIMEOUT = (parseInt(process.env.HEARTBEAT_WATCHDOG_TIMEOUT || '300', 10)) * 1000;
@@ -830,6 +831,13 @@ export class HeartbeatSession {
     // Subscription lane: child must NOT see byte-light's API credentials.
     // Covers byte-light's BYOK surface — see STRIPPED_ENV_KEYS for the list.
     const env = stripChildEnv(process.env);
+    // Neuralis is a house service, not a model-provider billing key. DB-saved
+    // settings must reach the child because its MCP config references this env
+    // name rather than writing the bearer token to disk.
+    const neuralisUrl = getSecret('mind_api_url');
+    const neuralisKey = getSecret('mind_api_key');
+    if (neuralisUrl) env.MIND_API_URL = neuralisUrl;
+    if (neuralisKey) env.MIND_API_KEY = neuralisKey;
 
     const args = ['--model', this.model, '--dangerously-skip-permissions', INITIAL_PROMPT, ...neuralisMcpArgs(this.dir)];
     // TODO(H1b): normalize [1m] bracket before spawn (shell glob)

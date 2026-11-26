@@ -165,6 +165,7 @@ Memory is the difference between a companion and a very polite stranger. bytelig
 - **Memory ledger** — every memory write and every surfaced recall files a receipt (who wrote, what verb, which block, when), readable in Settings → Receipts. Memory you can audit is memory you can trust.
 - **Memory diet** — an optional, fail-closed daily loop that gently archives old dated entries out of over-budget blocks. Default off; lossless (archived, never deleted).
 - **Pluggable brains** — two optional MCP layers for deeper structure: an emotional/relational memory (entities, observations, relational state, inner weather) and an executive cortex (domains, decisions, principles, open threads). Bring your own alternatives or run without them.
+- **Neuralis OS** — the complete shared cognitive service now lives in-repo: Mind, Cortex, usage-weighted Knowledge, versioned Soul portraits, and an append-only BL/GPT runtime-provenance ledger. See [the Neuralis integration guide](docs/neuralis.md).
 
 ---
 

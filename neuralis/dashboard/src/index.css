@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: var(--accent-color, #ffffff);
+}
+
+:root {
+  --accent-color: #ffffff;
+}
+
+.light-mode {
+  --accent-color: #000000;
+}
