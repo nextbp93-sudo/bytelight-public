@@ -236,8 +236,11 @@ describe('the companions see her highlights, never past her bookmark', () => {
       ], 'a finished chapter: all of hers, in page order');
 
       const here = readAlong(book.id, undefined, root);
-      assert.equal(here.cutAtHerPlace, true);
-      assert.deepEqual(here.highlights.map((h) => h.quote), ['The fog sat on the harbor'], 'the one past her place stays hidden');
+      assert.equal(here.cutAtHerPlace, false);
+      assert.deepEqual(here.highlights.map((h) => h.quote), [
+        'The fog sat on the harbor',
+        'afraid of the quiet after it',
+      ], 'companions see the full chapter and its highlights');
 
       const all = highlightsSoFar(book.id, root);
       assert.equal(all.readInKindle, false);
@@ -245,13 +248,10 @@ describe('the companions see her highlights, never past her bookmark', () => {
         [0, 'burned every night'],
         [0, 'nobody in the village'],
         [1, 'The fog sat on the harbor'],
-      ], 'nothing from her current chapter past her place, nothing from a chapter ahead');
+        [1, 'afraid of the quiet after it'],
+        [2, 'Gulls wheeled'],
+      ], 'all highlights across chapters in page order');
       assert.equal(all.highlights[0].chapterTitle, 'Chapter One');
-
-      // Reaching the end of chapter two shows its last line's highlight too.
-      setProgress(book.id, 1, 1, root);
-      assert.equal(readAlong(book.id, undefined, root).highlights.length, 2);
-      assert.equal(highlightsSoFar(book.id, root).highlights.some((h) => h.chapter === 2), false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -273,12 +273,12 @@ describe('the companions see her highlights, never past her bookmark', () => {
     }
   });
 
-  it('refuses a book she has not started, or one not on her shelf', () => {
+  it('returns empty highlights on an unopened book, and refuses one not on her shelf', () => {
     const root = tmpRoot();
     try {
       const book = lanternBook();
       saveBook(book, root);
-      assert.throws(() => highlightsSoFar(book.id, root), /not started/);
+      assert.deepEqual(highlightsSoFar(book.id, root).highlights, []);
       assert.throws(() => highlightsSoFar(42, root), LibraryError);
     } finally {
       rmSync(root, { recursive: true, force: true });

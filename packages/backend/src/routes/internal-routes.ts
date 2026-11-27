@@ -107,7 +107,7 @@ import type { TelegramService } from '../services/telegram/index.js';
 import type { AgentService } from '../services/agent.js';
 import { getActiveDiscordService, type DiscordService } from '../services/discord/index.js';
 import { errMessage } from '../util/errors.js';
-import { readShelf, currentlyReading, readAlong, highlightsSoFar, addNote, readNotes, LibraryError } from '../services/library.js';
+import { readShelf, currentlyReading, readAlong, highlightsSoFar, addNote, readNotes, setCompanionProgress, LibraryError } from '../services/library.js';
 import { needle } from '../services/needle.js';
 import storyShelfInternalRoutes from './internal/story-shelf.js';
 import bookClubInternalRoutes from './internal/library-book-club.js';
@@ -1786,12 +1786,12 @@ export function createInternalRoutes(): Router {
     }
   });
 
-  // ── The Library — reading along with her ────────────────────────────────
-  // status: what she is reading and where she is. read: a chapter she has
-  // reached, cut at her bookmark (services/library.ts readAlong refuses to go
-  // past it), with her highlights on it. highlights: every highlight of hers in
-  // a book up to her bookmark (a Kindle notebook card's, all of them). note:
-  // leave a margin note on words from a page she has reached.
+  // ── The Library — shared bookshelf (free companion reading + margin notes) ─
+  // status: what is on the shelf, her bookmark + companion bookmarks.
+  // read: any chapter of a shelved book (optionally updating the companion's own bookmark).
+  // bookmark: set a companion's own bookmark explicitly.
+  // highlights: her highlights in a book.
+  // note: leave an underlined margin note on any chapter's exact words.
   router.post('/internal/library', requireLocalhost, (req, res) => {
     const { action } = req.body ?? {};
     try {
@@ -1815,6 +1815,9 @@ export function createInternalRoutes(): Router {
               title: e.title,
               authors: e.authors,
               chapter: e.progress ? e.progress.chapter + 1 : null,
+              companionBookmarks: e.companionProgress
+                ? Object.fromEntries(Object.entries(e.companionProgress).map(([k, v]) => [k, { chapter: v.chapter + 1, updatedAt: v.updatedAt }]))
+                : undefined,
               chapterCount: e.chapterCount,
               // A notebook card: she reads it in the Kindle app, nothing here to read along with.
               ...(e.source === 'kindle' ? { readInKindle: true } : {}),
@@ -1823,11 +1826,13 @@ export function createInternalRoutes(): Router {
           return;
         }
         case 'read': {
-          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : currentlyReading()?.id;
-          if (!target) throw new LibraryError('She is not reading anything yet.');
+          const fallbackBook = currentlyReading()?.id ?? readShelf().find((e) => e.source !== 'kindle')?.id;
+          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : fallbackBook;
+          if (!target) throw new LibraryError('There are no readable books on the shelf yet.');
           // Chapters are 1-based for companions, as she sees them.
           const chapter = req.body.chapter !== undefined ? Number(req.body.chapter) - 1 : undefined;
-          const r = readAlong(target, chapter);
+          const companion = typeof req.body.companion === 'string' && req.body.companion.trim() ? req.body.companion.trim() : undefined;
+          const r = readAlong(target, chapter, undefined, companion);
           const notes = readNotes(target).filter((n) => n.chapter === r.chapter);
           res.json({
             bookId: r.bookId,
@@ -1836,20 +1841,34 @@ export function createInternalRoutes(): Router {
             chapter: r.chapter + 1,
             chapterTitle: r.chapterTitle,
             chapterCount: r.chapterCount,
+            herChapter: r.herChapter !== null ? r.herChapter + 1 : null,
+            aheadOfHer: r.aheadOfHer,
             cutAtHerPlace: r.cutAtHerPlace,
-            note: r.cutAtHerPlace
-              ? `This is as far as she has read (${r.paragraphs.length} of ${r.totalParagraphs} paragraphs). Do not guess or reveal what comes next.`
+            note: r.aheadOfHer
+              ? 'You are ahead of her current bookmark on this book. Margin notes left here will wait quietly on the page until she reaches them; avoid spoiling unread plot in chat unless she asks.'
               : undefined,
             text: r.paragraphs.join('\n\n'),
             marginNotes: notes.map((n) => ({ author: n.author, quote: n.quote, note: n.note })),
-            // Hers: what she marked on these pages (none past her place).
             herHighlights: r.highlights.map((h) => ({ quote: h.quote, color: h.color, note: h.note || undefined, source: h.source })),
           });
           return;
         }
+        case 'bookmark': {
+          const fallbackBook = currentlyReading()?.id ?? readShelf().find((e) => e.source !== 'kindle')?.id;
+          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : fallbackBook;
+          if (!target) throw new LibraryError('There are no readable books on the shelf yet.');
+          if (req.body.chapter === undefined) throw new LibraryError('Which chapter (1-based)?');
+          const companion = String(req.body.companion ?? '').trim();
+          const updated = setCompanionProgress(target, companion, Number(req.body.chapter) - 1);
+          if (!updated) throw new LibraryError('That book is not on her shelf.');
+          const saved = updated.companionProgress?.[companion.toLowerCase()];
+          res.json({ success: true, bookId: target, companion: companion.toLowerCase(), chapter: saved ? saved.chapter + 1 : Number(req.body.chapter) });
+          return;
+        }
         case 'highlights': {
-          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : currentlyReading()?.id;
-          if (!target) throw new LibraryError('She is not reading anything yet.');
+          const fallbackBook = currentlyReading()?.id ?? readShelf()[0]?.id;
+          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : fallbackBook;
+          if (!target) throw new LibraryError('There are no books on the shelf yet.');
           const h = highlightsSoFar(target);
           res.json({
             bookId: h.bookId,
@@ -1870,8 +1889,9 @@ export function createInternalRoutes(): Router {
           return;
         }
         case 'note': {
-          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : currentlyReading()?.id;
-          if (!target) throw new LibraryError('She is not reading anything yet.');
+          const fallbackBook = currentlyReading()?.id ?? readShelf().find((e) => e.source !== 'kindle')?.id;
+          const target = req.body.bookId !== undefined ? Number(req.body.bookId) : fallbackBook;
+          if (!target) throw new LibraryError('There are no readable books on the shelf yet.');
           if (req.body.chapter === undefined) throw new LibraryError('Which chapter (1-based)?');
           const note = addNote({
             bookId: target,
@@ -1884,7 +1904,7 @@ export function createInternalRoutes(): Router {
           return;
         }
         default:
-          res.status(400).json({ error: "action must be 'status', 'read', 'highlights' or 'note'" });
+          res.status(400).json({ error: "action must be 'status', 'read', 'bookmark', 'highlights' or 'note'" });
       }
     } catch (err) {
       const status = err instanceof LibraryError ? 400 : 500;

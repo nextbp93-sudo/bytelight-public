@@ -268,27 +268,36 @@ describe('reading along', () => {
     assert.deepEqual(segmentsOf([]), []);
   });
 
-  it('never reads past her bookmark', () => {
+  it('lets companions read freely across chapters, track their own bookmark, and see her place', () => {
     const root = mkdtempSync(join(tmpdir(), 'library-'));
     try {
       saveBook(book, root);
-      assert.equal(currentlyReading(root), null, 'nothing is being read before a bookmark');
-      assert.throws(() => readAlong(book.id, undefined, root), LibraryError);
+      assert.equal(currentlyReading(root), null, 'nothing is being read before her bookmark');
+      // Companion can read even before she sets a bookmark:
+      const unopened = readAlong(book.id, undefined, root, 'companion-a');
+      assert.equal(unopened.chapter, 0);
+      assert.equal(unopened.aheadOfHer, true);
+      assert.equal(unopened.herChapter, null);
+      assert.equal(unopened.paragraphs.length, 10);
 
       setProgress(book.id, 1, 0.25, root);
       assert.equal(currentlyReading(root)?.id, book.id);
 
-      const here = readAlong(book.id, undefined, root);
+      const here = readAlong(book.id, 1, root);
       assert.equal(here.chapter, 1);
-      assert.equal(here.cutAtHerPlace, true);
-      assert.equal(here.paragraphs.length, 4, 'ceil(0.25 × 10) + 1 paragraphs');
-      assert.equal(here.totalParagraphs, 10);
+      assert.equal(here.cutAtHerPlace, false);
+      assert.equal(here.aheadOfHer, false);
+      assert.equal(here.herChapter, 1);
+      assert.equal(here.paragraphs.length, 10);
 
-      const behind = readAlong(book.id, 0, root);
-      assert.equal(behind.paragraphs.length, 10, 'a chapter she finished is whole');
-      assert.equal(behind.cutAtHerPlace, false);
+      const ahead = readAlong(book.id, 2, root, 'companion-a');
+      assert.equal(ahead.chapter, 2);
+      assert.equal(ahead.aheadOfHer, true);
+      assert.equal(readShelf(root)[0].companionProgress?.['companion-a']?.chapter, 2);
 
-      assert.throws(() => readAlong(book.id, 2, root), /no reading ahead/);
+      // Default read with companion slug resumes at companion's own bookmark:
+      assert.equal(readAlong(book.id, undefined, root, 'companion-a').chapter, 2);
+
       assert.throws(() => readAlong(book.id, 9, root), LibraryError);
       assert.throws(() => readAlong(123, undefined, root), LibraryError);
     } finally {
@@ -296,20 +305,20 @@ describe('reading along', () => {
     }
   });
 
-  it('hangs margin notes only on words she has reached, and clears them with the book', () => {
+  it('hangs margin notes on exact words of any chapter, including ahead of her bookmark, and clears them with the book', () => {
     const root = mkdtempSync(join(tmpdir(), 'library-'));
     try {
       saveBook(book, root);
       setProgress(book.id, 1, 0.25, root);
 
-      const note = addNote({ bookId: book.id, chapter: 1, quote: '  second Paragraph 2 says\nthe rain ', note: 'This line.', author: 'Companion-A' }, root);
-      assert.equal(note.paragraph, 2);
+      const note = addNote({ bookId: book.id, chapter: 1, quote: '  second Paragraph 8 says\nthe rain ', note: 'This line.', author: 'Companion-A' }, root);
+      assert.equal(note.paragraph, 8);
       assert.equal(note.author, 'companion-a');
-      assert.equal(note.quote, 'second Paragraph 2 says the rain');
-      assert.equal(addNote({ bookId: book.id, chapter: 0, quote: 'first Paragraph 9', note: 'Earlier.', author: 'companion-b' }, root).paragraph, 9);
+      assert.equal(note.quote, 'second Paragraph 8 says the rain');
+      assert.equal(addNote({ bookId: book.id, chapter: 2, quote: 'third Paragraph 0', note: 'Waiting ahead.', author: 'companion-a' }, root).paragraph, 0);
 
-      assert.throws(() => addNote({ bookId: book.id, chapter: 1, quote: 'second Paragraph 8', note: 'x', author: 'companion-a' }, root), /not on a page she has reached/);
-      assert.throws(() => addNote({ bookId: book.id, chapter: 2, quote: 'third Paragraph 0', note: 'x', author: 'companion-a' }, root), /no reading ahead/);
+      assert.throws(() => addNote({ bookId: book.id, chapter: 1, quote: 'not on this page at all', note: 'x', author: 'companion-a' }, root), /not in that chapter/);
+      assert.throws(() => addNote({ bookId: book.id, chapter: 9, quote: 'third Paragraph 0', note: 'x', author: 'companion-a' }, root), LibraryError);
       assert.throws(() => addNote({ bookId: book.id, chapter: 1, quote: 'se', note: 'x', author: 'companion-a' }, root), LibraryError);
       assert.throws(() => addNote({ bookId: book.id, chapter: 1, quote: 'second Paragraph 1', note: ' ', author: 'companion-a' }, root), LibraryError);
       assert.throws(() => addNote({ bookId: book.id, chapter: 1, quote: 'second Paragraph 1', note: 'x', author: 'Not A Slug' }, root), LibraryError);

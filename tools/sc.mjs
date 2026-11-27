@@ -518,16 +518,29 @@ switch (cmd) {
   }
 
   case 'library': {
-    // Reading along with her. read never goes past her bookmark; notes hang
-    // on exact words from a page she has reached. Chapters are 1-based.
+    // Shared bookshelf: companions may read freely at their own pace, track
+    // their own bookmark (--as <slug>), and hang notes on exact words of any chapter.
+    // Chapters are 1-based.
     const sub = args[0];
     if (sub === 'status') {
       await post('library', { action: 'status' });
     } else if (sub === 'read') {
+      const positional = args.slice(1).filter((v, idx, arr) => (idx > 0 && arr[idx - 1] === '--as') ? false : v !== '--as');
       const body = { action: 'read' };
-      if (args[1]) body.bookId = Number(args[1]);
-      if (args[2]) body.chapter = Number(args[2]);
+      if (positional[0]) body.bookId = Number(positional[0]);
+      if (positional[1]) body.chapter = Number(positional[1]);
+      const companion = flagValue(args, '--as');
+      if (companion) body.companion = companion;
       await post('library', body);
+    } else if (sub === 'bookmark') {
+      if (!args[1] || !args[2]) {
+        console.log('Usage: sc library bookmark <bookId> <chapter> --as <slug>');
+        break;
+      }
+      await post('library', {
+        action: 'bookmark', bookId: Number(args[1]), chapter: Number(args[2]),
+        companion: flagValue(args, '--as') || 'companion-a',
+      });
     } else if (sub === 'note') {
       if (!args[1] || !args[2] || !args[3] || !args[4]) {
         console.log('Usage: sc library note <bookId> <chapter> "<exact quote>" "<your note>" --as <slug>');
@@ -538,7 +551,7 @@ switch (cmd) {
         quote: args[3], note: args[4], author: flagValue(args, '--as') || '',
       });
     } else {
-      console.log('Usage: sc library status | read [bookId] [chapter] | note <bookId> <chapter> "<quote>" "<note>" --as <slug>');
+      console.log('Usage: sc library status | read [bookId] [chapter] [--as <slug>] | bookmark <bookId> <chapter> --as <slug> | note <bookId> <chapter> "<quote>" "<note>" --as <slug>');
     }
     break;
   }

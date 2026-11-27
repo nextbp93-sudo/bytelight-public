@@ -48,6 +48,8 @@ export interface ShelfEntry {
    *  entry so it goes wherever the book goes (and off the shelf with it).
    *  Absent until she rates it. Any book can carry one, Kindle cards too. */
   review?: BookReview;
+  /** Each companion's own bookmark (slug → place), when reading independently. */
+  companionProgress?: Record<string, { chapter: number; updatedAt: string }>;
 }
 
 /** Her 1–5 stars and, if she wants, a few words. */
@@ -185,8 +187,9 @@ export function saveBook(book: LibraryBook, root = libraryDir()): SavedEntry {
     shelf: existing?.shelf ?? card?.shelf ?? 'tbr',
     favorite: existing?.favorite ?? card?.favorite ?? false,
     ...(existing?.spineColor !== undefined ? { spineColor: existing.spineColor } : {}),
-    // Her review stays through a re-shelve, and moves over from a Kindle card.
+    // Her review and companion bookmarks stay through a re-shelve.
     ...((existing?.review ?? card?.review) ? { review: existing?.review ?? card?.review } : {}),
+    ...(existing?.companionProgress ? { companionProgress: existing.companionProgress } : {}),
   };
   writeShelf([entry, ...shelf.filter((e) => e.id !== book.id)], root);
   // Kindle highlights brought in before the book was shelved land on it now.
@@ -702,30 +705,42 @@ export interface ReadAlongResult {
   chapter: number;
   chapterTitle: string;
   chapterCount: number;
-  /** Paragraphs she has reached in this chapter (all of them for a finished chapter). */
+  /** All paragraphs of this chapter. */
   paragraphs: string[];
-  /** True when this is her current chapter and it is cut at her place. */
+  /** Retained for wire compatibility (false under free-reading rules). */
   cutAtHerPlace: boolean;
+  /** Her current 0-based chapter bookmark, or null if she hasn't started yet. */
+  herChapter: number | null;
+  /** True when this chapter is past her current bookmark (or she hasn't started). */
+  aheadOfHer: boolean;
   totalParagraphs: number;
-  /** Her highlights on the words above (none past her place), page order. */
+  /** Her highlights on this chapter, page order. */
   highlights: Highlight[];
 }
 
-/** The paragraphs of chapter n she has reached: all of a finished chapter, her current one cut at her place. */
-function reachedParagraphs(book: LibraryBook, n: number, progress: LibraryProgress): { all: string[]; visible: string[]; cut: boolean } {
-  const all = paragraphsOf(book.chapters[n].text);
-  if (n < progress.chapter) return { all, visible: all, cut: false };
-  // Her place is a scroll fraction; round up a paragraph so the line she
-  // is looking at is included, never further.
-  const reach = Math.min(all.length, Math.ceil(progress.fraction * all.length) + 1);
-  return { all, visible: all.slice(0, reach), cut: reach < all.length };
+export function setCompanionProgress(
+  id: number,
+  companion: string,
+  chapter: number,
+  root = libraryDir(),
+): ShelfEntry | null {
+  const slug = companion.trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,32}$/.test(slug)) throw new LibraryError('Bookmark requires your companion slug (e.g. companion-a).');
+  const shelf = readShelf(root);
+  const entry = shelf.find((e) => e.id === id);
+  if (!entry) return null;
+  const maxChapter = Math.max(0, entry.chapterCount - 1);
+  const clamped = Math.min(Math.max(0, Math.floor(chapter)), maxChapter);
+  entry.companionProgress = {
+    ...(entry.companionProgress ?? {}),
+    [slug]: { chapter: clamped, updatedAt: new Date().toISOString() },
+  };
+  writeShelf(shelf, root);
+  return entry;
 }
 
 /**
- * Her highlights on one chapter that sit wholly on words she has reached.
- * A highlight can be further on than her bookmark (she read ahead, then went
- * back), and its words would give the page away, so it stays hidden until
- * she gets there again. Ordered as they fall on the page.
+ * Her highlights on one chapter, ordered as they fall on the page.
  */
 function highlightsWithin(list: Highlight[], chapter: number, visible: string[]): Highlight[] {
   const page = foldText(visible.join('\n')).folded;
@@ -738,21 +753,24 @@ function highlightsWithin(list: Highlight[], chapter: number, visible: string[])
 }
 
 /**
- * What a companion may read: any chapter she has finished, and her current
- * chapter up to where she is, with her highlights on it. Never past her
- * bookmark — the server, not the prompt, is what keeps it spoiler-free.
+ * Shared bookshelf reading: companions may read any chapter of any shelved
+ * book at their own pace (before, with, or ahead of her bookmark) and track
+ * their own companion bookmark when `companion` is supplied.
  */
-export function readAlong(bookId: number, chapter: number | undefined, root = libraryDir()): ReadAlongResult {
+export function readAlong(bookId: number, chapter: number | undefined, root = libraryDir(), companion?: string): ReadAlongResult {
   const entry = readShelf(root).find((e) => e.id === bookId);
   const book = readBook(bookId, root);
   if (entry?.source === 'kindle') throw new LibraryError('She reads that one in the Kindle app; there is no text here to read along with, only her Kindle highlights.');
   if (!entry || !book) throw new LibraryError('That book is not on her shelf.');
-  if (!entry.progress) throw new LibraryError('She has not started this book yet.');
-  const here = entry.progress.chapter;
-  const n = chapter ?? here;
+  const slug = companion?.trim().toLowerCase();
+  const savedCompanionChapter = slug ? entry.companionProgress?.[slug]?.chapter : undefined;
+  const here = entry.progress ? entry.progress.chapter : null;
+  const n = chapter ?? savedCompanionChapter ?? here ?? 0;
   if (!Number.isInteger(n) || n < 0 || n >= book.chapters.length) throw new LibraryError('No such chapter.');
-  if (n > here) throw new LibraryError(`She is on chapter ${here + 1} — no reading ahead of her.`);
-  const { all, visible, cut } = reachedParagraphs(book, n, entry.progress);
+  if (slug) {
+    setCompanionProgress(bookId, slug, n, root);
+  }
+  const all = paragraphsOf(book.chapters[n].text);
   return {
     bookId,
     title: book.title,
@@ -760,10 +778,12 @@ export function readAlong(bookId: number, chapter: number | undefined, root = li
     chapter: n,
     chapterTitle: book.chapters[n].title,
     chapterCount: book.chapters.length,
-    paragraphs: visible,
-    cutAtHerPlace: cut,
+    paragraphs: all,
+    cutAtHerPlace: false,
+    herChapter: here,
+    aheadOfHer: here === null ? true : n > here,
     totalParagraphs: all.length,
-    highlights: highlightsWithin(readHighlights(bookId, root), n, visible),
+    highlights: highlightsWithin(readHighlights(bookId, root), n, all),
   };
 }
 
@@ -788,10 +808,8 @@ export interface HerHighlightsResult {
 }
 
 /**
- * All her highlights in a book, up to her bookmark: every chapter she has
- * finished, and her current one cut at her place (the same reach as
- * readAlong). A Kindle notebook card has no text and no bookmark; its
- * highlights are what she chose to export, so all of them are hers to share.
+ * All her highlights in a book across every chapter. A Kindle notebook card has
+ * no text and no bookmark; its highlights are what she chose to export.
  */
 export function highlightsSoFar(bookId: number, root = libraryDir()): HerHighlightsResult {
   const entry = readShelf(root).find((e) => e.id === bookId);
@@ -817,12 +835,10 @@ export function highlightsSoFar(bookId: number, root = libraryDir()): HerHighlig
   }
   const book = readBook(bookId, root);
   if (!book) throw new LibraryError('That book is not on her shelf.');
-  if (!entry.progress) throw new LibraryError('She has not started this book yet.');
-  const progress = entry.progress;
   const mine = readHighlights(bookId, root);
   const out: HerHighlightsResult['highlights'] = [];
-  for (let n = 0; n <= Math.min(progress.chapter, book.chapters.length - 1); n++) {
-    for (const h of highlightsWithin(mine, n, reachedParagraphs(book, n, progress).visible)) {
+  for (let n = 0; n < book.chapters.length; n++) {
+    for (const h of highlightsWithin(mine, n, paragraphsOf(book.chapters[n].text))) {
       out.push({ chapter: n, chapterTitle: book.chapters[n].title, quote: h.quote, color: h.color, note: h.note, source: h.source, createdAt: h.createdAt });
     }
   }
@@ -867,9 +883,8 @@ function writeNotes(bookId: number, notes: MarginNote[], root: string): void {
 const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 /**
- * Leave a note in the margin. The quote must be words from a paragraph she
- * has already reached (the same reach as readAlong), so a note can never
- * point ahead of her or at text that isn't there.
+ * Leave a note in the margin on exact words of any chapter in the book.
+ * Notes placed ahead of her bookmark wait quietly on the page until she reaches them.
  */
 export function addNote(
   input: { bookId: number; chapter: number; quote: string; note: string; author: string },
@@ -883,7 +898,7 @@ export function addNote(
   if (!/^[a-z0-9_-]{1,32}$/.test(author)) throw new LibraryError('Sign the note with your slug (e.g. companion-a, companion-b).');
   const reach = readAlong(input.bookId, input.chapter, root);
   const paragraph = reach.paragraphs.findIndex((p) => squash(p).includes(quote));
-  if (paragraph === -1) throw new LibraryError('Those words are not on a page she has reached in that chapter — quote them exactly.');
+  if (paragraph === -1) throw new LibraryError('Those words are not in that chapter — quote them exactly.');
   const entry: MarginNote = {
     id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
     chapter: reach.chapter,
