@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getConfigBool, setConfig } from '../services/db.js';
+import { getSecret } from '../services/secrets.js';
 import { DiscordService } from '../services/discord/index.js';
 import type { AgentService } from '../services/agent.js';
 import { getDiscordConfig, getAllowedUsers, getAllowedGuilds, getActiveChannels } from '../services/discord/config.js';
@@ -16,7 +17,7 @@ export function createDiscordRoutes(): Router {
     try {
       const discordService = req.app.locals.discordService as DiscordService | null;
       const configEnabled = getConfigBool('discord.enabled', false);
-      const hasToken = !!process.env.DISCORD_BOT_TOKEN;
+      const hasToken = !!getSecret('discord_bot_token');
       if (!discordService) {
         res.json({ enabled: false, configEnabled, hasToken });
         return;
@@ -35,8 +36,8 @@ export function createDiscordRoutes(): Router {
 
       if (enabled) {
         // Start Discord gateway
-        if (!process.env.DISCORD_BOT_TOKEN) {
-          res.status(400).json({ error: 'DISCORD_BOT_TOKEN not set in .env' });
+        if (!getSecret('discord_bot_token')) {
+          res.status(400).json({ error: 'Discord bot token not set in Secrets or .env' });
           return;
         }
         if (req.app.locals.discordService) {

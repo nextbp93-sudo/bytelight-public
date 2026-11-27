@@ -133,7 +133,7 @@ function nameOf(thing: unknown): string | undefined {
 /** Our names as words a message can carry (the judge's "one of our names"), from the companions list. */
 function companionNames(): string[] {
   try {
-    return listCompanions().flatMap((c) => [c.display_name, c.id]).filter(Boolean);
+    return listCompanions().filter((c) => !/^companion-[bc]$/i.test(c.id)).flatMap((c) => [c.display_name, ...(c.display_name ? c.display_name.split(/\s+/).filter((w) => w.length >= 3) : []), c.id]).filter(Boolean);
   } catch {
     return [];
   }
