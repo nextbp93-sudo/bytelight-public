@@ -198,6 +198,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Mic flow now goes through the backend (Groq Whisper + optional Hume
   // prosody) instead of browser SpeechRecognition. State comes from the
@@ -206,8 +207,9 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   const isRecording = transcription.status === 'recording';
   const isTranscribing = transcription.status === 'processing';
   // Cached at consume-time so a quick edit before send doesn't lose the
-  // tone reading. Cleared after a successful send or new recording.
+  // tone reading or raw audio recording id. Cleared after a successful send or new recording.
   const [pendingProsody, setPendingProsody] = useState<Record<string, number> | undefined>();
+  const [pendingAudioFileId, setPendingAudioFileId] = useState<string | undefined>();
   // Track the text we filled from a transcription. If the user keeps it
   // (or appends to it), prosody travels with the send. If they wipe it
   // and type something unrelated, drop the prosody — would be wrong to
@@ -517,9 +519,19 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
       // line to the agent prompt so the companion sees how it was said.
       // No audio file is stored; this is text-with-flavor, not a real
       // voice-note bubble.
-      if (pendingProsody) {
-        onSend({ text: finalContent, metadata: { prosody: pendingProsody } }, 'text');
+      if (pendingProsody || pendingAudioFileId) {
+        onSend(
+          {
+            text: finalContent,
+            metadata: {
+              ...(pendingProsody ? { prosody: pendingProsody } : {}),
+              ...(pendingAudioFileId ? { audioFileId: pendingAudioFileId } : {}),
+            },
+          },
+          'text',
+        );
         setPendingProsody(undefined);
+        setPendingAudioFileId(undefined);
         lastTranscriptText.current = null;
       } else {
         onSend(finalContent, type);
@@ -543,13 +555,22 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         return next;
       });
       setPendingProsody(transcription.prosody);
+      setPendingAudioFileId(transcription.audioFileId);
       setIsVoiceNote(true);
       clearTranscription();
     } else if (transcription.status === 'error' && transcription.error) {
       onError?.(transcription.error);
       clearTranscription();
     }
-  }, [transcription.status, transcription.text, transcription.prosody, transcription.error, onError, voiceConversationActive]);
+  }, [transcription.status, transcription.text, transcription.prosody, transcription.audioFileId, transcription.error, onError, voiceConversationActive]);
+
+  // If the user completely clears the composer after dictating, also clear any
+  // cached raw voice recording id so unrelated fresh typing later doesn't send old audio.
+  useEffect(() => {
+    if (pendingAudioFileId && content.trim() === '') {
+      setPendingAudioFileId(undefined);
+    }
+  }, [content, pendingAudioFileId]);
 
   // If the user edits the composer to something that no longer contains
   // the transcribed text, drop the prosody — wouldn't be honest to
@@ -577,7 +598,9 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
       return;
     }
     if (!isRecordingSupported()) {
-      onError?.('Voice recording is not supported in this browser.');
+      // On plain HTTP LAN/Tailscale URLs, iOS Safari disables getUserMedia —
+      // fall back cleanly to picking a Voice Memo / audio clip instead of dead-ending.
+      audioInputRef.current?.click();
       return;
     }
     try {
@@ -615,8 +638,52 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   };
 
   const readDocument = async (file: File): Promise<string> => {
+    const lowerName = file.name.toLowerCase();
+    const isAudioFile =
+      file.type.startsWith('audio/') ||
+      /\.(mp3|m4a|wav|ogg|webm|aac)$/i.test(lowerName);
+    if (isAudioFile) {
+      const extMatch = lowerName.match(/\.(mp3|m4a|wav|ogg|webm|aac)$/i);
+      const fallbackExt = extMatch ? extMatch[0].toLowerCase() : '.m4a';
+      const safeName = extMatch ? file.name : `${file.name}${fallbackExt}`;
+      const mimeMap: Record<string, string> = {
+        '.mp3': 'audio/mpeg',
+        '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac',
+        '.wav': 'audio/wav',
+        '.ogg': 'audio/ogg',
+        '.webm': 'audio/webm',
+      };
+      const cleanMime = (file.type || '').split(';')[0].trim().toLowerCase();
+      const uploadMime =
+        cleanMime && cleanMime.startsWith('audio/')
+          ? cleanMime
+          : mimeMap[fallbackExt] || 'audio/mp4';
+      const form = new FormData();
+      form.append('file', new File([file], safeName, { type: uploadMime }));
+      const res = await apiFetch('/api/files', { method: 'POST', body: form });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error || `Audio upload failed (${res.status})`);
+      }
+      const storedExtMap: Record<string, string> = {
+        'audio/mpeg': '.mp3',
+        'audio/mp3': '.mp3',
+        'audio/mp4': '.m4a',
+        'audio/x-m4a': '.m4a',
+        'audio/aac': '.aac',
+        'audio/x-aac': '.aac',
+        'audio/wav': '.wav',
+        'audio/wave': '.wav',
+        'audio/x-wav': '.wav',
+        'audio/ogg': '.ogg',
+        'audio/webm': '.webm',
+      };
+      const storedExt = storedExtMap[payload.mimeType as string] || fallbackExt;
+      return `[Uploaded voice/audio recording: ${safeName} (${(file.size / 1024).toFixed(1)} KB) — server fileId: ${payload.fileId}, path: /opt/bytelight/data/files/${payload.fileId}${storedExt} — multimodal models (e.g. Gemini Carbon) can read/listen to this raw audio file directly via read_file]`;
+    }
     if (
-      file.name.toLowerCase().endsWith('.zip') ||
+      lowerName.endsWith('.zip') ||
       file.type === 'application/zip' ||
       file.type === 'application/x-zip-compressed'
     ) {
@@ -868,7 +935,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         // BL's composer contract: 'expanded' when something is going on —
         // pending text, attachments, or an open picker. Focus expands via
         // CSS :focus-within. The toolbar row reads both (index.css).
-        (content.trim().length > 0 || images.length > 0 || documents.length > 0 || !!attachment || canvasRefs.length > 0 || showEmojiPicker || showGifPicker || showStickerPicker) && "expanded",
+        (content.trim().length > 0 || images.length > 0 || documents.length > 0 || !!attachment || canvasRefs.length > 0 || isRecording || isTranscribing || showEmojiPicker || showGifPicker || showStickerPicker) && "expanded",
         // Daylight chrome is clean white (original Gemini-era design) so
         // the footer fuses with the white status bar; the muted accent
         // lives in the page behind the messages, not in the chrome.
@@ -999,9 +1066,19 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         type="file"
         id="file-text-input"
         name="file-text-input"
-        accept=".txt,.md,.csv,.json,.log,.pdf,.zip,application/zip,application/x-zip-compressed"
         multiple
         ref={fileInputRef}
+        onChange={handleFileTextChange}
+        className="hidden"
+      />
+
+      <input
+        type="file"
+        id="audio-file-input"
+        name="audio-file-input"
+        accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm,.aac,audio/x-m4a,audio/mp4"
+        multiple
+        ref={audioInputRef}
         onChange={handleFileTextChange}
         className="hidden"
       />
@@ -1084,7 +1161,10 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
             ))}
           </div>
         )}
-        <div className="bytelight-toolbar flex items-center gap-1 px-1">
+        <div
+          className="bytelight-toolbar flex items-center gap-1 px-1"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <button
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);

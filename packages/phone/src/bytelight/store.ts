@@ -72,6 +72,7 @@ export interface BytelightState {
     prosodyStatus?: 'complete' | 'unavailable';
     error?: string;
     recordingId?: string;
+    audioFileId?: string;
   };
   // True when viewing a search-jump window (loadThreadAround) rather than
   // the latest messages. The "jump to latest" button should reload the

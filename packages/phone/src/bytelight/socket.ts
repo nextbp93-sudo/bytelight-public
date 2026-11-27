@@ -695,6 +695,7 @@ function handleMessage(event: MessageEvent): void {
           prosodyStatus: msg.prosodyStatus,
           error: msg.error,
           recordingId: msg.recordingId,
+          audioFileId: msg.audioFileId,
         },
       });
       break;

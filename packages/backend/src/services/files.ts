@@ -8,8 +8,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const ALLOWED_TYPES: Record<string, string> = {
   'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp',
-  'audio/mpeg': '.mp3', 'audio/wav': '.wav', 'audio/ogg': '.ogg', 'audio/webm': '.webm',
-  'audio/mp4': '.m4a', 'audio/x-m4a': '.m4a',
+  'audio/mpeg': '.mp3', 'audio/mp3': '.mp3', 'audio/wav': '.wav', 'audio/wave': '.wav', 'audio/x-wav': '.wav',
+  'audio/ogg': '.ogg', 'audio/webm': '.webm',
+  'audio/mp4': '.m4a', 'audio/x-m4a': '.m4a', 'audio/aac': '.aac', 'audio/x-aac': '.aac',
   'application/pdf': '.pdf', 'text/plain': '.txt', 'text/markdown': '.md',
   'text/csv': '.csv', 'application/json': '.json',
   'application/zip': '.zip', 'application/x-zip-compressed': '.zip',
@@ -22,7 +23,7 @@ const EXT_TO_MIME: Record<string, string> = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp',
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
-  '.m4a': 'audio/mp4', '.webm': 'audio/webm',
+  '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.webm': 'audio/webm',
   '.pdf': 'application/pdf', '.txt': 'text/plain',
   '.md': 'text/markdown', '.csv': 'text/csv', '.json': 'application/json',
   '.zip': 'application/zip',
@@ -51,9 +52,13 @@ export function ensureFilesDir(): void {
 }
 
 export function resolveMimeType(originalFilename: string, browserMime: string): string {
-  if (browserMime && browserMime !== 'application/octet-stream' && ALLOWED_TYPES[browserMime]) return browserMime;
   const ext = extname(originalFilename).toLowerCase();
-  return EXT_TO_MIME[ext] || browserMime;
+  const cleanMime = (browserMime || '').split(';')[0].trim().toLowerCase();
+  if (ext === '.m4a' && (!cleanMime || cleanMime === 'video/mp4' || cleanMime === 'application/octet-stream')) {
+    return 'audio/mp4';
+  }
+  if (cleanMime && cleanMime !== 'application/octet-stream' && ALLOWED_TYPES[cleanMime]) return cleanMime;
+  return EXT_TO_MIME[ext] || cleanMime || browserMime;
 }
 
 export function saveFile(buffer: Buffer, originalFilename: string, mimeType: string): FileMetadata {

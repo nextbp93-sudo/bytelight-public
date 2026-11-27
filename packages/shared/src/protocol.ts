@@ -71,7 +71,7 @@ export type ServerMessage =
   | { type: 'voice_audio'; data: string }
   | { type: 'voice_transcript'; text: string }
   | { type: 'voice_mode_ack'; enabled: boolean }
-  | { type: 'transcription_status'; status: 'processing' | 'complete' | 'error'; text?: string; error?: string; prosody?: Record<string, number>; prosodyStatus?: 'complete' | 'unavailable'; recordingId?: string }
+  | { type: 'transcription_status'; status: 'processing' | 'complete' | 'error'; text?: string; error?: string; prosody?: Record<string, number>; prosodyStatus?: 'complete' | 'unavailable'; recordingId?: string; audioFileId?: string }
   | { type: 'tts_start'; messageId: string }
   | { type: 'tts_audio'; messageId: string; data: string; final: boolean }
   | { type: 'tts_end'; messageId: string }

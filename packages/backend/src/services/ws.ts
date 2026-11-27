@@ -43,7 +43,7 @@ import { AgentService, QUEUE_TIMEOUT_MESSAGE } from './agent.js';
 import { getThreadRoster, type Companion } from './db/rooms.js';
 import { dispatchRemoteTurn, remoteDisplayName } from './living-room-relay.js';
 import { Orchestrator } from './orchestrator.js';
-import { getFile } from './files.js';
+import { getFile, saveFile } from './files.js';
 import { capImageBlocks, MAX_IMAGES_PER_TURN, type ImageBlock } from './visual-blocks.js';
 import { prepareVisionImage, type PreparedVisionImage } from './vision-image-preprocessor.js';
 import type { NormalizedImage } from './runtimes/types.js';
@@ -870,14 +870,22 @@ async function handleMessageSend(
     }
   }
 
-  // Prepend prosody tone context if present
+  // Prepend prosody tone context and/or preserved raw voice recording path if present
   if (msg.metadata && typeof msg.metadata === 'object') {
-    const prosody = (msg.metadata as Record<string, unknown>).prosody as Record<string, number> | undefined;
+    const metaObj = msg.metadata as Record<string, unknown>;
+    const prosody = metaObj.prosody as Record<string, number> | undefined;
     if (prosody && Object.keys(prosody).length > 0) {
       const toneEntries = Object.entries(prosody)
         .map(([emotion, score]) => `${emotion}: ${score}`)
         .join(', ');
       agentPrompt = `[Voice tone — ${toneEntries}]\n${agentPrompt}`;
+    }
+    const audioFileId = typeof metaObj.audioFileId === 'string' ? metaObj.audioFileId : undefined;
+    if (audioFileId) {
+      const voiceFile = getFile(audioFileId);
+      if (voiceFile) {
+        agentPrompt = `[Raw voice recording saved at: ${voiceFile.path} (${voiceFile.mimeType}) — multimodal models (e.g. Gemini Carbon) can read/listen to this audio file directly via read_file to hear ${config.identity.user_name}'s real voice, timbre, breath, laughter, or humming alongside the text]\n${agentPrompt}`;
+      }
     }
   }
 
@@ -1233,7 +1241,43 @@ async function handleVoiceStop(
   ws.audioChunks = []; // Free memory
   ws.audioBytes = 0;
 
+  // Persist raw voice recording so multimodal models (e.g. Gemini Carbon) can
+  // actually listen to the real audio waveform in addition to any STT text.
+  let savedVoiceFile: ReturnType<typeof saveFile> | null = null;
+  if (audioBuffer.length > 0) {
+    try {
+      const baseMime = (ws.audioMimeType || 'audio/webm').split(';')[0].trim().toLowerCase() || 'audio/webm';
+      const extMap: Record<string, string> = {
+        'audio/mp4': '.m4a',
+        'audio/x-m4a': '.m4a',
+        'audio/aac': '.aac',
+        'audio/mpeg': '.mp3',
+        'audio/mp3': '.mp3',
+        'audio/ogg': '.ogg',
+        'audio/wav': '.wav',
+        'audio/x-wav': '.wav',
+        'audio/webm': '.webm',
+      };
+      const ext = extMap[baseMime] || '.webm';
+      savedVoiceFile = saveFile(audioBuffer, `voice-note-${Date.now()}${ext}`, baseMime);
+    } catch (saveErr) {
+      console.warn('[Voice] Could not persist raw voice recording (continuing):', saveErr);
+    }
+  }
+
   if (!voiceServiceInstance?.canTranscribe) {
+    if (savedVoiceFile) {
+      const fallbackComplete: ServerMessage = {
+        type: 'transcription_status',
+        status: 'complete',
+        text: '[Voice note]',
+        audioFileId: savedVoiceFile.fileId,
+        ...(recordingId && { recordingId }),
+      };
+      ws.send(JSON.stringify(fallbackComplete));
+      ws.activeRecordingId = null;
+      return;
+    }
     const errorMsg: ServerMessage = {
       type: 'transcription_status',
       status: 'error',
@@ -1276,6 +1320,17 @@ async function handleVoiceStop(
     if (ws.prosodyAbort === prosodyAbort) ws.prosodyAbort = null;
 
     if (!transcript.trim()) {
+      if (savedVoiceFile && audioBuffer.length > 1024) {
+        const audioOnlyMsg: ServerMessage = {
+          type: 'transcription_status',
+          status: 'complete',
+          text: '[Voice note]',
+          audioFileId: savedVoiceFile.fileId,
+          ...(recordingId && { recordingId }),
+        };
+        ws.send(JSON.stringify(audioOnlyMsg));
+        return;
+      }
       const emptyMsg: ServerMessage = {
         type: 'transcription_status',
         status: 'error',
@@ -1291,6 +1346,18 @@ async function handleVoiceStop(
     // of delivering a video outro as her words — treat it like an empty transcript.
     const stockPhrase = detectWhisperHallucination(transcript);
     if (stockPhrase) {
+      if (savedVoiceFile && audioBuffer.length > 2048) {
+        console.warn(`[Voice] Whisper hallucinated "${stockPhrase}" on non-speech audio; delivering raw voice note (${savedVoiceFile.fileId})`);
+        const rawNoteMsg: ServerMessage = {
+          type: 'transcription_status',
+          status: 'complete',
+          text: '[Voice note]',
+          audioFileId: savedVoiceFile.fileId,
+          ...(recordingId && { recordingId }),
+        };
+        ws.send(JSON.stringify(rawNoteMsg));
+        return;
+      }
       console.warn(`[Voice] Transcript rejected as Whisper stock phrase: "${transcript.trim()}"`);
       const suspectMsg: ServerMessage = {
         type: 'transcription_status',
@@ -1311,11 +1378,9 @@ async function handleVoiceStop(
       status: 'complete',
       text: transcript,
       ...(prosody && { prosody }),
-      // When tone was requested we always report status. byte-light's batch
-      // prosody is vendor-dead, so this resolves to 'unavailable' unless the
-      // legacy Hume path is explicitly enabled and returns scores.
       ...(toneRequested && { prosodyStatus: prosody ? 'complete' : 'unavailable' }),
       ...(recordingId && { recordingId }),
+      ...(savedVoiceFile && { audioFileId: savedVoiceFile.fileId }),
     };
     ws.send(JSON.stringify(completeMsg));
   } catch (error) {
