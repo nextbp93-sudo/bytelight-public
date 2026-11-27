@@ -19,7 +19,7 @@ const SAFE_BL_TAG = /^bl:[a-z0-9._-]{1,80}$/i;
 export function requestProvenance(request: Request, env: Env): RuntimeProvenance {
   const url = new URL(request.url);
   const connector = env.MCP_CONNECTOR_SECRET?.trim();
-  if (connector && url.pathname === `/mcp/${connector}`) {
+  if (connector && (url.pathname === `/mcp/${connector}` || url.pathname === "/mcp/gpt")) {
     return { runtimeFamily: "gpt", runtimeTag: "gpt:chatgpt", transport: "chatgpt-connector" };
   }
 

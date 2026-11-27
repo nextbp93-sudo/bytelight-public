@@ -1,6 +1,7 @@
 import {
   createUnauthorizedMcpResponse,
   isAuthorizedConnectorPath,
+  isAuthorizedGptRequest,
   isAuthorizedRequest,
   timingSafeEqual
 } from "./auth";
@@ -614,8 +615,11 @@ export async function routeRequest(
 
   const usesConnectorPath = isAuthorizedConnectorPath(url, env);
   const usesCorePath = url.pathname === "/mcp/core";
-  if ((url.pathname === "/mcp" || usesCorePath || usesConnectorPath) && request.method === "POST") {
-    if (!usesConnectorPath && !isAuthorizedRequest(request, env)) {
+  const usesGptPath = url.pathname === "/mcp/gpt";
+  if ((url.pathname === "/mcp" || usesCorePath || usesConnectorPath || usesGptPath) && request.method === "POST") {
+    const authorized = usesConnectorPath
+      || (usesGptPath ? isAuthorizedGptRequest(request, env) : isAuthorizedRequest(request, env));
+    if (!authorized) {
       return withSecurityHeaders(
         createUnauthorizedMcpResponse(),
         request,

@@ -60,6 +60,21 @@ export function isAuthorizedConnectorPath(url: URL, env: Env): boolean {
   return timingSafeEqual(url.pathname, expectedPath);
 }
 
+/**
+ * Authenticate the stable ChatGPT plugin endpoint without putting its secret
+ * in the URL or plugin package. The plugin supplies MCP_CONNECTOR_SECRET as a
+ * bearer credential during connection setup.
+ */
+export function isAuthorizedGptRequest(request: Request, env: Env): boolean {
+  const connectorSecret = env.MCP_CONNECTOR_SECRET?.trim();
+  if (!connectorSecret) return false;
+
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+
+  return timingSafeEqual(authHeader.slice(7).trim(), connectorSecret);
+}
+
 export function createUnauthorizedMcpResponse(id: string | number | null = 0): Response {
   const response: MCPResponse = {
     jsonrpc: "2.0",

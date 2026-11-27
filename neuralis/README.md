@@ -125,7 +125,7 @@ Register the worker as an MCP server — Claude Code via a Bearer token, or Clau
 | `MIND_API_KEY` | Yes | Bearer token for API + MCP auth |
 | Cloudflare AI binding | Yes | Configured as `AI` in `wrangler.toml`; no separate model API key |
 | `DASHBOARD_ALLOWED_ORIGIN` | For dashboard | CORS origin URL |
-| `MCP_CONNECTOR_SECRET` | Optional | Secret path segment for MCP connector |
+| `MCP_CONNECTOR_SECRET` | Optional | ChatGPT MCP bearer credential (legacy secret-path connections also remain supported) |
 | `SIGNING_SECRET` | Optional | HMAC signing for image URLs (falls back to MIND_API_KEY) |
 
 Full table (weather, location, R2 prefix) in the worker README.

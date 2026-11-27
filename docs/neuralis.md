@@ -87,14 +87,17 @@ belongs in Git.
 
 ## Connect GPT / ChatGPT
 
-Use the public HTTPS MCP URL:
+For a packaged private plugin, use the stable public HTTPS MCP URL:
 
 ```text
-https://<worker>.workers.dev/mcp/<MCP_CONNECTOR_SECRET>
+https://<worker>.workers.dev/mcp/gpt
 ```
 
-The secret path is the authentication credential, so do not also use the BL
-bearer. Scan the tools and verify `neuralis_runtime_identity` reports
+Configure API-key authentication with the `MCP_CONNECTOR_SECRET` value as a
+bearer credential. This keeps the secret out of the plugin package. The legacy
+secret-path connector remains supported for existing installations. Do not use
+the BL bearer for the GPT door. Scan the tools and verify
+`neuralis_runtime_identity` reports
 `runtime_family: gpt` and `runtime_tag: gpt:chatgpt` before the first write.
 
 The current ChatGPT web flow is **Plugins → + → Add custom MCP server**. Full
