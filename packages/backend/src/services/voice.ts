@@ -15,6 +15,7 @@ import { parseElevenLabsSubscription, type ElevenLabsUsage } from './elevenlabs-
 import { LOCAL_STT_CONFIG_KEY, parseLocalSttUrl, transcribeLocally } from './local-stt.js';
 
 const GROQ_WHISPER_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1/text-to-speech';
 const ELEVENLABS_SUBSCRIPTION_URL = 'https://api.elevenlabs.io/v1/user/subscription';
 const ELEVENLABS_USAGE_CACHE_MS = 60_000;
@@ -64,8 +65,8 @@ export class VoiceService {
       }
     }
 
-    if (!this.groqKey) {
-      console.warn('[Voice] GROQ_API_KEY not set — transcription not configured');
+    if (!this.groqKey && !this.elevenLabsKey) {
+      console.warn('[Voice] Neither GROQ_API_KEY nor ELEVENLABS_API_KEY set — transcription not configured');
     }
     if (!this.elevenLabsKey) {
       console.warn('[Voice] ELEVENLABS_API_KEY not set — TTS not configured');
@@ -91,7 +92,7 @@ export class VoiceService {
   }
 
   get canTranscribe(): boolean {
-    return !!this.groqKey || !!localSttUrl();
+    return !!this.groqKey || !!this.elevenLabsKey || !!localSttUrl();
   }
 
   get canTTS(): boolean {
@@ -126,12 +127,6 @@ export class VoiceService {
 
   /** Transcribe through the preferred configured provider with fallback. */
   async transcribe(audioBuffer: Buffer, mimeType: string, signal?: AbortSignal): Promise<string> {
-    // A server on this machine goes first when one is configured
-    // (voice.local_stt_url), read per request so switching it on or off needs
-    // no restart. Anything short of real words, an empty transcript included,
-    // hands the turn on to Groq below (see transcribeLocally); only the
-    // caller's own abort stops the chain. Unset: exactly the old Groq path.
-    // (Aerie.)
     const localUrl = localSttUrl();
     if (localUrl) {
       const startedAt = Date.now();
@@ -140,9 +135,58 @@ export class VoiceService {
         console.log(`[Voice] Transcribed locally in ${Date.now() - startedAt}ms (${audioBuffer.length} bytes, ${local.text.length} chars)`);
         return local.text;
       }
-      console.warn(`[Voice] Local transcription gave nothing usable after ${Date.now() - startedAt}ms (${local.reason}), trying Groq`);
+      console.warn(`[Voice] Local transcription gave nothing usable after ${Date.now() - startedAt}ms (${local.reason}), trying cloud STT`);
+    }
+    if (this.groqKey) {
+      try {
+        return await this.transcribeWithGroq(audioBuffer, mimeType);
+      } catch (err) {
+        if (!this.elevenLabsKey) throw err;
+        console.warn('[Voice] Groq STT failed, falling back to ElevenLabs Scribe:', err);
+      }
+    }
+    if (this.elevenLabsKey) {
+      return this.transcribeWithElevenLabs(audioBuffer, mimeType, signal);
     }
     return this.transcribeWithGroq(audioBuffer, mimeType);
+  }
+
+  /**
+   * Transcribe audio buffer using ElevenLabs Scribe (`scribe_v1`) via the
+   * configured `elevenlabs_api_key` secret.
+   */
+  private async transcribeWithElevenLabs(audioBuffer: Buffer, mimeType: string, signal?: AbortSignal): Promise<string> {
+    if (!this.elevenLabsKey) {
+      throw new Error('ELEVENLABS_API_KEY not configured — cannot transcribe');
+    }
+    const extMap: Record<string, string> = {
+      'audio/webm': 'webm',
+      'audio/mp4': 'm4a',
+      'audio/x-m4a': 'm4a',
+      'audio/aac': 'aac',
+      'audio/mpeg': 'mp3',
+      'audio/ogg': 'ogg',
+      'audio/wav': 'wav',
+    };
+    const baseMime = (mimeType || 'audio/webm').split(';')[0].trim().toLowerCase();
+    const ext = extMap[baseMime] || 'webm';
+    const form = new FormData();
+    form.append('model_id', 'scribe_v1');
+    form.append('tag_audio_events', 'false');
+    form.append('file', new Blob([new Uint8Array(audioBuffer)], { type: baseMime || 'audio/webm' }), `recording.${ext}`);
+
+    const response = await fetch(ELEVENLABS_STT_URL, {
+      method: 'POST',
+      headers: { 'xi-api-key': this.elevenLabsKey },
+      body: form,
+      ...(signal ? { signal } : {}),
+    });
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`ElevenLabs Scribe API error ${response.status}: ${errText}`);
+    }
+    const result = await response.json() as { text?: string };
+    return result.text || '';
   }
 
   /**
