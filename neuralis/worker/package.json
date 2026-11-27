@@ -17,6 +17,7 @@
     "wrangler": "^4.54.0"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.4.0",
     "pg": "^8.20.0"
   }
 }

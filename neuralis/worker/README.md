@@ -190,6 +190,20 @@ https://<your-worker>.workers.dev/mcp/YOUR_CONNECTOR_SECRET
 
 Treat that full URL as a credential. Never commit it, post it, or hardcode it in a client.
 
+### ChatGPT custom MCP
+
+ChatGPT connects to the stable endpoint with OAuth:
+
+```text
+https://<your-worker>.workers.dev/mcp/gpt
+```
+
+Choose OAuth in the custom MCP form. The Worker publishes discovery metadata,
+registers the client, and opens the Mythic Neuralis consent page. Enter
+`MCP_CONNECTOR_SECRET` as the house key there. ChatGPT receives only a scoped,
+revocable OAuth token; it never receives the house key. The route always stamps
+requests as `gpt:chatgpt`, independently from Bytelight's runtime tag.
+
 ### Test it
 
 ```
@@ -208,7 +222,7 @@ Treat that full URL as a credential. Never commit it, post it, or hardcode it in
 | `MIND_API_KEY` | Yes | API key for Bearer auth — any strong random string |
 | `AI` binding | Yes | Cloudflare Workers AI binding declared in `wrangler.toml`; no secret or external subscription |
 | `SIGNING_SECRET` | No | Separate HMAC key for signed image URLs (defaults to MIND_API_KEY) |
-| `MCP_CONNECTOR_SECRET` | No | Secret path for Claude.ai connector auth |
+| `MCP_CONNECTOR_SECRET` | No | House key for ChatGPT OAuth approval plus legacy connector auth |
 | `WEATHER_API_KEY` | No | WeatherAPI.com key for inner weather |
 | `DASHBOARD_ALLOWED_ORIGIN` | No | CORS origin for the dashboard |
 | `WORKER_URL` | No | Public URL of this worker (for signed image URLs) |

@@ -8,6 +8,9 @@ export interface Env {
   MIND_API_KEY: string;
   SIGNING_SECRET?: string;
   MCP_CONNECTOR_SECRET?: string;
+  OAUTH_KV: KVNamespace;
+  OAUTH_PROVIDER?: import("@cloudflare/workers-oauth-provider").OAuthHelpers;
+  GPT_OAUTH_AUTHORIZED?: boolean;
   WEATHER_API_KEY?: string;
   DASHBOARD_ALLOWED_ORIGIN?: string;
   INTERNAL_KEY?: string;

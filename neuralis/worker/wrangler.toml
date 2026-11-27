@@ -5,8 +5,8 @@
 # ─────────────────────────────────────────────────────────────────────────
 name = "neuralis"
 main = "src/index.ts"
-compatibility_date = "2024-12-18"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2026-11-26"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 workers_dev = true
 
@@ -36,6 +36,12 @@ index_name = "neuralis-vectors"
 [[r2_buckets]]
 binding = "R2_IMAGES"
 bucket_name = "neuralis-images"
+
+# OAuth tokens, authorization codes, and dynamic client registrations.
+# Create with: npx wrangler kv namespace create OAUTH_KV
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "your-kv-namespace-id-here"
 
 # The daemon's heartbeat. Only ONE worker per D1 database may run it: two
 # workers sharing a database must not both run the daemon (double dreams,
@@ -72,7 +78,7 @@ __HOUSE_HUMAN_CONTEXT__ = "\"human-world\""
 # Embeddings and mechanical generation use the bound Cloudflare Workers AI
 # service above; no external model API key is required.
 # SIGNING_SECRET      - Optional. Separate secret for signed URLs (defaults to MIND_API_KEY)
-# MCP_CONNECTOR_SECRET - Optional. Secret path for MCP connector auth
+# MCP_CONNECTOR_SECRET - Optional. House key for GPT OAuth approval and legacy connector auth
 # WEATHER_API_KEY     - Optional. WeatherAPI.com key for inner weather
 # DASHBOARD_ALLOWED_ORIGIN - Optional. CORS origin for dashboard
 # WORKER_URL          - Optional. Public URL of this worker (for signed image URLs)

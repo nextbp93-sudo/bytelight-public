@@ -17,6 +17,13 @@ test("the stable GPT endpoint accepts only the connector bearer", () => {
   }), env), true);
 });
 
+test("the stable GPT endpoint accepts an already-validated OAuth request", () => {
+  assert.equal(isAuthorizedGptRequest(
+    new Request("https://mind.test/mcp/gpt"),
+    { GPT_OAUTH_AUTHORIZED: true } as Env,
+  ), true);
+});
+
 test("the stable GPT endpoint receives immutable GPT provenance", () => {
   assert.deepEqual(requestProvenance(new Request("https://mind.test/mcp/gpt", {
     headers: { "X-Neuralis-Runtime": "bl:spoofed" },

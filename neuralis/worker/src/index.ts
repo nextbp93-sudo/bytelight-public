@@ -16,6 +16,7 @@ import { setGenerationModel } from "./embeddings";
 import * as api from "./api";
 import type { Env, MCPToolHandlerMap } from "./types";
 import { syncPendingTextVectors } from "./utils";
+import { createGptOAuthProvider } from "./http/oauth";
 
 const CORE_TOOL_HANDLERS: MCPToolHandlerMap = Object.fromEntries(
   CORE_TOOL_NAMES.map((name) => [name, mcpToolHandlers[name]])
@@ -31,8 +32,8 @@ async function handleMCPRequest(request: Request, env: Env): Promise<Response> {
   });
 }
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+const app = {
+  async fetch(request: Request, env: Env, _ctx?: ExecutionContext): Promise<Response> {
     setGenerationModel(env.GENERATION_MODEL);
     // Swap D1 + Vectorize for Postgres adapters via Hyperdrive
     const pgEnv = env.HYPERDRIVE
@@ -87,6 +88,12 @@ export default {
       handleApiFeelings: api.handleApiFeelings,
       handleMCPRequest
     });
+  },
+};
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return createGptOAuthProvider(request, env, app).fetch(request, env, ctx);
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {

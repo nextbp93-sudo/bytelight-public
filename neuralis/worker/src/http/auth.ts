@@ -66,6 +66,8 @@ export function isAuthorizedConnectorPath(url: URL, env: Env): boolean {
  * bearer credential during connection setup.
  */
 export function isAuthorizedGptRequest(request: Request, env: Env): boolean {
+  if (env.GPT_OAUTH_AUTHORIZED) return true;
+
   const connectorSecret = env.MCP_CONNECTOR_SECRET?.trim();
   if (!connectorSecret) return false;
 

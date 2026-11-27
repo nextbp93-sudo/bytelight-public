@@ -65,7 +65,8 @@ resources described in `neuralis/README.md`, then apply every migration through
 Set these secrets with Wrangler:
 
 - `MIND_API_KEY`: Bytelight's bearer token.
-- `MCP_CONNECTOR_SECRET`: a separate long random path segment for GPT.
+- `MCP_CONNECTOR_SECRET`: a separate long random house key for GPT OAuth
+  approval and legacy connector access.
 
 Deploy with:
 
@@ -93,10 +94,13 @@ For a packaged private plugin, use the stable public HTTPS MCP URL:
 https://<worker>.workers.dev/mcp/gpt
 ```
 
-Configure API-key authentication with the `MCP_CONNECTOR_SECRET` value as a
-bearer credential. This keeps the secret out of the plugin package. The legacy
-secret-path connector remains supported for existing installations. Do not use
-the BL bearer for the GPT door. Scan the tools and verify
+Choose OAuth authentication. Neuralis publishes protected-resource metadata,
+authorization-server discovery, dynamic client registration, PKCE, refresh
+tokens, and a single-user approval page. When the approval page opens, enter
+the `MCP_CONNECTOR_SECRET` as the house key; the key is checked by Neuralis and
+is never returned to ChatGPT. Existing API-key and secret-path connectors remain
+supported during migration. Do not use the BL bearer for the GPT door. Scan the
+tools and verify
 `neuralis_runtime_identity` reports
 `runtime_family: gpt` and `runtime_tag: gpt:chatgpt` before the first write.
 
